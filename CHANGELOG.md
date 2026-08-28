@@ -36,8 +36,13 @@ project follows [Semantic Versioning](https://semver.org/).
   a real `tor` daemon and recording it with VHS — not mockups. Source
   scripts in `docs/vhs/`, regeneration script at
   `scripts/generate-screenshots.sh`.
-- **Architecture and Troubleshooting pages** on the docs site, with
-  Mermaid diagrams (also now used in `README.md`'s "How it works").
+- **Architecture and Troubleshooting pages** (`docs/architecture.md`,
+  `docs/troubleshooting.md`), with Mermaid diagrams (also now used in
+  `README.md`'s "How it works") — plain markdown, browsable directly on
+  GitHub. Docs deliberately live entirely in-repo, not as a separately
+  hosted/rendered site: the `docs/src/` + mdBook + GitHub Pages setup
+  from earlier in this project's history was tried and then removed in
+  favor of this, before ever being tagged in a release.
 - **Reboot-drift detection**: `anonveil status` and the TUI now compare
   persisted state against whether the kill switch is *actually* loaded in
   the kernel right now, and loudly flag a mismatch (nftables rules don't

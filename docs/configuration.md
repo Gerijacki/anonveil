@@ -17,7 +17,7 @@ starting point.
 | `trans_port` | `9040` | Loopback port Tor's `TransPort` listens on. |
 | `dns_port` | `5353` | Loopback port Tor's `DNSPort` listens on. |
 | `control_port` | `9051` | Loopback port Tor's `ControlPort` listens on. |
-| `ipv6_mode` | `"block"` | `"block"` (only implemented mode in v0.1) hard-blocks non-loopback IPv6. `"route_through_tor"` is reserved for a future release — see the [threat model](threat-model.md). |
+| `ipv6_mode` | `"block"` | `"block"` (only implemented mode in v0.1) hard-blocks non-loopback IPv6. `"route_through_tor"` is reserved for a future release — see the [threat model](../threat-model.md). |
 | `excluded_tcp_ports` | `[]` | TCP ports on this host that bypass the kill switch entirely. |
 | `excluded_interfaces` | `[]` | Interfaces that bypass the kill switch's default-deny (does **not** exempt them from DNS/TCP redirection — see the threat model). |
 | `exit_nodes` | `[]` | Two-letter country codes (e.g. `"us"`) or relay fingerprints to constrain exit circuits to. Empty means Tor's own default selection. |
@@ -43,7 +43,7 @@ Requires `obfs4proxy` installed (an optional dependency of both packages —
 see [Installation](installation.md)); `anonveil doctor` checks for it when
 bridges are enabled. Bridges hide *that* you're connecting to Tor at all
 from a local network observer or censor — they don't add anonymity beyond
-what Tor already provides once connected. See the [threat model](threat-model.md).
+what Tor already provides once connected. See the [threat model](../threat-model.md).
 
 ## `[mac]`
 

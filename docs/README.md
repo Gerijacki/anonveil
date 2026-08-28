@@ -1,4 +1,4 @@
-# Introduction
+# AnonVeil documentation
 
 AnonVeil is a system-wide Tor transparent proxy and kill switch for
 Arch and Debian. It redirects every outbound TCP connection and every
@@ -15,10 +15,17 @@ $ sudo anonveil start
 ✔ AnonVeil is active — all traffic is now routed through Tor.
 ```
 
-This book covers installation, day-to-day usage, configuration, and —
-most importantly — the [threat model](threat-model.md): a precise,
-honest account of what AnonVeil protects against and what it doesn't.
-Read that chapter before relying on this for anything sensitive.
+## Contents
+
+- [Installation](installation.md)
+- [Usage](usage.md)
+- [Configuration](configuration.md)
+- [Architecture](architecture.md)
+- [Threat model](../threat-model.md) — read this before relying on
+  AnonVeil for anything sensitive: a precise, honest account of what it
+  protects against and what it doesn't.
+- [Troubleshooting](troubleshooting.md)
+- [FAQ](faq.md)
 
 For the project's source, issue tracker, and contribution guide, see
 the [GitHub repository](https://github.com/Gerijacki/anonveil).

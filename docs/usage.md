@@ -63,7 +63,7 @@ sudo anonveil stop --force
 
 Nothing extra to do — once `anonveil start` is active, any application
 (a normal browser, `curl`, anything) can resolve and connect to
-`.onion` addresses directly. See [the threat model](threat-model.md)
+`.onion` addresses directly. See [the threat model](../threat-model.md)
 for what this does and doesn't mean for fingerprinting resistance.
 
 ## Excluding traffic from the kill switch

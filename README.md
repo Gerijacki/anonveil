@@ -14,7 +14,7 @@ down, AnonVeil fails *closed*, not open.
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/Gerijacki/anonveil?include_prereleases)](https://github.com/Gerijacki/anonveil/releases)
 
-[Docs](https://gerijacki.github.io/anonveil/) · [Threat model](threat-model.md) · [Roadmap](ROADMAP.md) · [Security policy](SECURITY.md)
+[Docs](docs/README.md) · [Threat model](threat-model.md) · [Roadmap](ROADMAP.md) · [Security policy](SECURITY.md)
 
 </div>
 
@@ -180,7 +180,7 @@ switch you can audit, on a system you don't have to rebuild.
 ## Documentation
 
 - [Threat model](threat-model.md) — what AnonVeil does and doesn't protect against. Read this first.
-- [Full documentation site](https://gerijacki.github.io/anonveil/)
+- [Full documentation](docs/README.md) — installation, usage, configuration, architecture, troubleshooting, FAQ.
 - [Roadmap](ROADMAP.md)
 - [Manual testing checklist](MANUAL_TESTING.md) (used before every release)
 

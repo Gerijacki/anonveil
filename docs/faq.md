@@ -5,7 +5,7 @@ No. AnonVeil anonymizes network traffic; it doesn't harden a browser
 against fingerprinting. Use Tor Browser for browsing where
 fingerprinting resistance matters, and AnonVeil as the system-wide
 kill switch underneath everything else. See the
-[threat model](threat-model.md).
+[threat model](../threat-model.md).
 
 **Why not iptables?**
 Both Arch's `iptables` package and Debian's default backend are
@@ -15,7 +15,7 @@ cleanly, instead of juggling `iptables`/`ip6tables`/`iptables-legacy`.
 
 **Does it work with IPv6?**
 IPv6 is hard-blocked by default in v0.1, not routed through Tor —
-see the [threat model](threat-model.md) for why, and the tradeoff
+see the [threat model](../threat-model.md) for why, and the tradeoff
 (a possible short connection delay for IPv6-preferring apps).
 
 **Can I route my phone/another device through AnonVeil?**
