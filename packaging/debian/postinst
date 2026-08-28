@@ -1,0 +1,25 @@
+#!/bin/sh
+# Post-install hook for the AnonVeil .deb package.
+# Only ever creates files that don't already exist — never overwrites a
+# user's existing configuration.
+set -e
+
+mkdir -p /etc/anonveil
+if [ ! -f /etc/anonveil/config.toml ]; then
+    cp /usr/share/anonveil/config.example.toml /etc/anonveil/config.toml
+fi
+
+mkdir -p /var/lib/anonveil /var/log/anonveil
+
+cat <<'EOF'
+
+AnonVeil installed. Next steps:
+  1. Review /etc/anonveil/config.toml
+  2. sudo anonveil start
+  3. anonveil check
+
+Read the threat model before relying on this for anything sensitive:
+  /usr/share/doc/anonveil/threat-model.md
+EOF
+
+exit 0

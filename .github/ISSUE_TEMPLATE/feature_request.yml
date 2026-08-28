@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest something for AnonVeil.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check [ROADMAP.md](https://github.com/Gerijacki/anonveil/blob/main/ROADMAP.md) first — your idea might already be tracked there (or deliberately marked "not planned," with the reasoning).
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

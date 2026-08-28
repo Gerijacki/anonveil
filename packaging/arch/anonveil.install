@@ -1,0 +1,24 @@
+post_install() {
+    mkdir -p /var/lib/anonveil /var/log/anonveil
+    cat <<EOF
+
+AnonVeil installed. Next steps:
+  1. Review /etc/anonveil/config.toml
+  2. sudo anonveil start
+  3. anonveil check
+
+Read the threat model before relying on this for anything sensitive:
+  /usr/share/doc/anonveil/threat-model.md
+EOF
+}
+
+post_upgrade() {
+    post_install
+}
+
+pre_remove() {
+    if command -v anonveil >/dev/null 2>&1 && anonveil status 2>/dev/null | grep -q ACTIVE; then
+        echo "==> AnonVeil is still active. Run 'anonveil stop' before/after removing the package"
+        echo "    to make sure your firewall and DNS configuration are restored."
+    fi
+}

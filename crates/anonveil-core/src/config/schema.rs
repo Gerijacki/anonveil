@@ -1,0 +1,203 @@
+//! `config.toml` schema.
+//!
+//! Parsing (`toml::from_str`) is pure and lives here; *finding* and
+//! *reading* the file (`/etc/anonveil/config.toml`, or `--config`) is
+//! `anonveil-cli`'s job.
+
+use std::str::FromStr;
+
+use serde::{Deserialize, Serialize};
+
+use crate::error::CoreResult;
+use crate::firewall::{ExcludedInterface, ExcludedTcpPort, FirewallConfig, Ipv6Mode};
+use crate::torrc::TorConfig;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum Ipv6Setting {
+    #[default]
+    Block,
+    /// Reserved for a future release; currently behaves identically to
+    /// `Block` (see `firewall::nft` module docs). Accepted here already
+    /// so an existing config doesn't need to change when it lands.
+    RouteThroughTor,
+}
+
+impl From<Ipv6Setting> for Ipv6Mode {
+    fn from(value: Ipv6Setting) -> Self {
+        match value {
+            Ipv6Setting::Block => Ipv6Mode::Block,
+            Ipv6Setting::RouteThroughTor => Ipv6Mode::RouteThroughTor,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct NetworkConfig {
+    pub trans_port: u16,
+    pub dns_port: u16,
+    pub control_port: u16,
+    pub ipv6_mode: Ipv6Setting,
+    pub excluded_tcp_ports: Vec<u16>,
+    pub excluded_interfaces: Vec<String>,
+}
+
+impl Default for NetworkConfig {
+    fn default() -> Self {
+        let defaults = TorConfig::default();
+        Self {
+            trans_port: defaults.trans_port,
+            dns_port: defaults.dns_port,
+            control_port: defaults.control_port,
+            ipv6_mode: Ipv6Setting::default(),
+            excluded_tcp_ports: Vec::new(),
+            excluded_interfaces: Vec::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(default)]
+pub struct MacConfig {
+    /// Off by default: MAC randomization changes host behavior in ways
+    /// that are surprising if silently enabled. Opt in explicitly.
+    pub randomize_on_start: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum TuiTheme {
+    #[default]
+    Matrix,
+    Cyan,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(default)]
+pub struct TuiConfig {
+    pub theme: TuiTheme,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct LoggingConfig {
+    pub level: String,
+}
+
+impl Default for LoggingConfig {
+    fn default() -> Self {
+        Self {
+            level: "info".to_string(),
+        }
+    }
+}
+
+/// The full parsed contents of `config.toml`. Every section has field
+/// defaults, so an empty (or partially specified) file is valid.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(default)]
+pub struct AnonveilConfig {
+    pub network: NetworkConfig,
+    pub mac: MacConfig,
+    pub tui: TuiConfig,
+    pub logging: LoggingConfig,
+}
+
+impl FromStr for AnonveilConfig {
+    type Err = crate::error::CoreError;
+
+    fn from_str(contents: &str) -> CoreResult<Self> {
+        Ok(toml::from_str(contents)?)
+    }
+}
+
+impl AnonveilConfig {
+    pub fn to_toml_string(&self) -> CoreResult<String> {
+        Ok(toml::to_string_pretty(self)?)
+    }
+
+    /// Build the [`FirewallConfig`] this config describes. `tor_uid` must
+    /// be resolved by the caller (`anonveil-priv`) — see `firewall::nft`.
+    pub fn to_firewall_config(&self, tor_uid: u32) -> FirewallConfig {
+        FirewallConfig {
+            trans_port: self.network.trans_port,
+            dns_port: self.network.dns_port,
+            tor_uid,
+            excluded_tcp_ports: self
+                .network
+                .excluded_tcp_ports
+                .iter()
+                .map(|p| ExcludedTcpPort(*p))
+                .collect(),
+            excluded_interfaces: self
+                .network
+                .excluded_interfaces
+                .iter()
+                .cloned()
+                .map(ExcludedInterface)
+                .collect(),
+            ipv6_mode: self.network.ipv6_mode.clone().into(),
+        }
+    }
+
+    pub fn to_tor_config(&self) -> TorConfig {
+        TorConfig {
+            trans_port: self.network.trans_port,
+            dns_port: self.network.dns_port,
+            control_port: self.network.control_port,
+            data_dir: TorConfig::default().data_dir,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_file_parses_to_defaults() {
+        let config = AnonveilConfig::from_str("").unwrap();
+        assert_eq!(config, AnonveilConfig::default());
+        assert_eq!(config.network.trans_port, 9040);
+        assert_eq!(config.network.dns_port, 5353);
+        assert!(!config.mac.randomize_on_start);
+    }
+
+    #[test]
+    fn round_trips_through_toml() {
+        let mut config = AnonveilConfig::default();
+        config.network.excluded_tcp_ports.push(22);
+        config
+            .network
+            .excluded_interfaces
+            .push("tailscale0".to_string());
+        config.mac.randomize_on_start = true;
+
+        let text = config.to_toml_string().unwrap();
+        let parsed = AnonveilConfig::from_str(&text).unwrap();
+        assert_eq!(parsed, config);
+    }
+
+    #[test]
+    fn parses_partial_override() {
+        let text = r#"
+[network]
+dns_port = 5454
+excluded_tcp_ports = [22, 443]
+"#;
+        let config = AnonveilConfig::from_str(text).unwrap();
+        assert_eq!(config.network.dns_port, 5454);
+        assert_eq!(config.network.trans_port, 9040); // untouched default
+        assert_eq!(config.network.excluded_tcp_ports, vec![22, 443]);
+    }
+
+    #[test]
+    fn converts_to_firewall_config() {
+        let config = AnonveilConfig::default();
+        let fw = config.to_firewall_config(123);
+        assert_eq!(fw.tor_uid, 123);
+        assert_eq!(fw.trans_port, config.network.trans_port);
+        assert_eq!(fw.ipv6_mode, Ipv6Mode::Block);
+    }
+}

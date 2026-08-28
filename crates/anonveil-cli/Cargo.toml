@@ -1,0 +1,48 @@
+[package]
+name = "anonveil-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "AnonVeil: a system-wide Tor transparent-proxy and kill switch for Arch and Debian."
+default-run = "anonveil"
+
+[[bin]]
+name = "anonveil"
+path = "src/main.rs"
+
+[dependencies]
+anonveil-core = { workspace = true }
+anonveil-priv = { workspace = true }
+clap = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-appender = "0.2"
+tokio = { workspace = true }
+ratatui = "0.30"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+
+[package.metadata.deb]
+maintainer = "AnonVeil contributors <anonveil@noreply.github.com>"
+copyright = "2026, AnonVeil contributors"
+license-file = ["../../LICENSE", "0"]
+extended-description = """\
+AnonVeil is a system-wide Tor transparent-proxy and kill switch: it \
+redirects all outbound traffic through Tor and blocks anything that \
+doesn't go through it, so a single command makes the whole host \
+anonymous — including .onion sites, which resolve natively once it's \
+active. See https://github.com/Gerijacki/anonveil for documentation \
+and the threat model."""
+depends = "tor, nftables, iproute2"
+section = "net"
+priority = "optional"
+maintainer-scripts = "../../packaging/debian"
+assets = [
+    ["target/release/anonveil", "usr/bin/", "755"],
+    ["../../config/config.example.toml", "usr/share/anonveil/config.example.toml", "644"],
+    ["../../README.md", "usr/share/doc/anonveil/README.md", "644"],
+    ["../../threat-model.md", "usr/share/doc/anonveil/threat-model.md", "644"],
+]

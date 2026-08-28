@@ -1,0 +1,28 @@
+[package]
+name = "anonveil-priv"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The privileged execution layer for AnonVeil: the only crate that touches the OS (nft, systemd, resolv.conf, the real Tor control-port socket)."
+
+[dependencies]
+anonveil-core = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+time = { version = "0.3", features = ["formatting", "parsing"] }
+rand = "0.8"
+
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.29", features = ["user", "fs"] }
+
+[features]
+# Gates tests/nftables_integration.rs: privileged tests that actually
+# call the real `nft` binary. Requires root and a working nftables
+# stack — run inside the isolated CI job, never on a machine you care
+# about outside of a disposable container/VM. See CONTRIBUTING.md.
+integration = []

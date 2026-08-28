@@ -1,0 +1,45 @@
+# AnonVeil configuration.
+#
+# Copy this file to /etc/anonveil/config.toml and edit as needed.
+# Every value shown here is the built-in default — an empty or partial
+# file is valid; anything you omit falls back to these defaults.
+
+[network]
+# Loopback port Tor's TransPort listens on.
+trans_port = 9040
+
+# Loopback port Tor's DNSPort listens on. Deliberately not 53: the
+# kill switch redirects normal port-53 traffic here, so this must stay
+# free for Tor itself to bind.
+dns_port = 5353
+
+# Loopback port Tor's ControlPort listens on (cookie-auth only).
+control_port = 9051
+
+# "block" (default, recommended) hard-blocks all non-loopback IPv6
+# traffic. "route_through_tor" is reserved for a future release and
+# currently behaves identically to "block" — see threat-model.md.
+ipv6_mode = "block"
+
+# TCP ports on THIS HOST that bypass the kill switch entirely (e.g. an
+# admin's own SSH session). Leave empty unless you know you need this —
+# every entry here is a deliberate hole in the kill switch.
+excluded_tcp_ports = []
+
+# Interfaces that bypass the kill switch's default-deny (e.g. a VPN/mesh
+# interface like "tailscale0"). Does NOT exempt the interface from Tor's
+# DNS/TCP redirection itself — see threat-model.md for why.
+excluded_interfaces = []
+
+[mac]
+# Randomize the network interface's MAC address every time `anonveil
+# start` runs. Off by default — enable deliberately, not as a surprise.
+randomize_on_start = false
+
+[tui]
+# "matrix" (green-on-black) or "cyan".
+theme = "matrix"
+
+[logging]
+# error | warn | info | debug | trace
+level = "info"

@@ -1,0 +1,5 @@
+# The firewall rule generation is the security model of this project —
+# changes to it always get a look from a maintainer.
+/crates/anonveil-core/src/firewall/ @Gerijacki
+/crates/anonveil-priv/ @Gerijacki
+/threat-model.md @Gerijacki

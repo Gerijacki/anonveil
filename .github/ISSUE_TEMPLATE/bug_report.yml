@@ -1,0 +1,46 @@
+name: Bug report
+description: Something isn't working as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Found a **security** issue (traffic bypassing the kill switch, a DNS leak, etc.)?
+        Please use [private vulnerability reporting](https://github.com/Gerijacki/anonveil/security/advisories/new) instead of a public issue — see SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: AnonVeil version
+      description: Output of `anonveil --version`
+    validations:
+      required: true
+  - type: dropdown
+    id: distro
+    attributes:
+      label: Distribution
+      options:
+        - Arch Linux
+        - Debian
+        - Ubuntu
+        - Other (specify below)
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you expected vs. what actually happened.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: From `/var/log/anonveil/`, or `anonveil` command output. Redact anything sensitive.
+      render: shell

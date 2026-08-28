@@ -1,0 +1,39 @@
+# Maintainer: AnonVeil contributors <anonveil@noreply.github.com>
+pkgname=anonveil
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="A system-wide Tor transparent-proxy and kill switch"
+arch=('x86_64' 'aarch64')
+url="https://github.com/Gerijacki/anonveil"
+license=('GPL-3.0-or-later')
+depends=('tor' 'nftables' 'iproute2')
+makedepends=('cargo')
+backup=('etc/anonveil/config.toml')
+install=anonveil.install
+source=("$pkgname-$pkgver.tar.gz::https://github.com/Gerijacki/anonveil/archive/refs/tags/v$pkgver.tar.gz")
+# Updated to the real checksum at release time (see RELEASING.md) —
+# `SKIP` here is only a placeholder for local/dev builds from a fresh
+# tag before that step has run.
+sha256sums=('SKIP')
+
+prepare() {
+    cd "$pkgname-$pkgver"
+    export RUSTUP_TOOLCHAIN=stable
+    cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+    cd "$pkgname-$pkgver"
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_TARGET_DIR=target
+    cargo build --frozen --release -p anonveil-cli
+}
+
+package() {
+    cd "$pkgname-$pkgver"
+    install -Dm755 target/release/anonveil "$pkgdir/usr/bin/anonveil"
+    install -Dm644 config/config.example.toml "$pkgdir/etc/anonveil/config.toml"
+    install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+    install -Dm644 threat-model.md "$pkgdir/usr/share/doc/$pkgname/threat-model.md"
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

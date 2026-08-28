@@ -1,0 +1,39 @@
+name: Supply chain audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - "deny.toml"
+      - ".github/workflows/audit.yml"
+  pull_request:
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - "deny.toml"
+      - ".github/workflows/audit.yml"
+  schedule:
+    # Weekly, so a newly-published advisory against a dependency we
+    # already use is caught even with no code changes.
+    - cron: "17 6 * * 1"
+
+jobs:
+  cargo-audit:
+    name: cargo audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  cargo-deny:
+    name: cargo deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check all

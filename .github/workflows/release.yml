@@ -1,0 +1,95 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    name: create GitHub release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          generate_release_notes: true
+
+  build-release:
+    name: build binary (${{ matrix.target }})
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: anonveil
+          target: ${{ matrix.target }}
+          archive: anonveil-$tag-${{ matrix.target }}
+          checksum: sha256
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  build-deb:
+    name: build .deb
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - run: cargo install cargo-deb --locked
+      - run: cargo build --release -p anonveil-cli
+      - run: cargo deb -p anonveil-cli --no-build -o target/debian/anonveil_amd64.deb
+      - name: upload .deb to release
+        run: gh release upload "${{ github.ref_name }}" target/debian/anonveil_amd64.deb --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-pkgbuild-tarball:
+    name: build Arch source tarball
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: build source tarball
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          git archive --prefix="anonveil-${VERSION}/" -o "anonveil-${VERSION}-src.tar.gz" HEAD
+      - name: upload to release
+        run: gh release upload "${{ github.ref_name }}" anonveil-*-src.tar.gz --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          echo "### AUR package" >> $GITHUB_STEP_SUMMARY
+          echo "This tarball is NOT auto-published to the AUR — see packaging/arch/README.md" >> $GITHUB_STEP_SUMMARY
+          echo "for the manual \`makepkg --printsrcinfo\` + AUR git push steps." >> $GITHUB_STEP_SUMMARY
+
+  checksums:
+    name: publish combined SHA256SUMS
+    needs: [build-release, build-deb, build-pkgbuild-tarball]
+    runs-on: ubuntu-latest
+    steps:
+      - name: download all release assets and hash them
+        run: |
+          mkdir -p assets && cd assets
+          gh release download "${{ github.ref_name }}" --repo "${{ github.repository }}" --skip-existing
+          sha256sum * > SHA256SUMS
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: upload SHA256SUMS
+        run: gh release upload "${{ github.ref_name }}" assets/SHA256SUMS --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

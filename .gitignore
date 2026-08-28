@@ -1,0 +1,8 @@
+/target/
+/docs/book/
+**/*.rs.bk
+*.pdb
+.idea/
+.vscode/
+*.swp
+.DS_Store

@@ -1,0 +1,10 @@
+# This is a Linux-targeted project — keep line endings LF in the repo
+# regardless of a contributor's local git config, so shell scripts
+# (whose shebang breaks with a trailing \r) and everything else behave
+# identically on Linux, which is the only place most of this ever runs.
+* text=auto eol=lf
+
+*.sh text eol=lf
+postinst text eol=lf
+PKGBUILD text eol=lf
+anonveil.install text eol=lf

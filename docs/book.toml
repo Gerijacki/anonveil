@@ -1,0 +1,12 @@
+[book]
+title = "AnonVeil"
+description = "A system-wide Tor kill switch for Arch and Debian."
+authors = ["AnonVeil contributors"]
+language = "en"
+src = "src"
+
+[output.html]
+git-repository-url = "https://github.com/Gerijacki/anonveil"
+edit-url-template = "https://github.com/Gerijacki/anonveil/edit/main/docs/{path}"
+default-theme = "ayu"
+preferred-dark-theme = "ayu"
