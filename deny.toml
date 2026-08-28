@@ -27,8 +27,12 @@ allow = [
     "ISC",
     "Unicode-3.0",
     "Zlib",
-    "CC0-1.0",
-    "MPL-2.0",
+    # webpki-roots ships Mozilla's root CA data under this permissive
+    # data license — not a code license, but a legitimate one for a
+    # very standard rustls-ecosystem dependency.
+    "CDLA-Permissive-2.0",
+    # AnonVeil's own crates.
+    "GPL-3.0-or-later",
 ]
 confidence-threshold = 0.8
 
