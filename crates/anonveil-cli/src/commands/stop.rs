@@ -7,6 +7,7 @@ use crate::style;
 
 pub fn run(force: bool) -> Result<()> {
     anonveil_priv::privilege::require_root()?;
+    let _lock = anonveil_priv::lock::StateLock::acquire()?;
 
     let mut state = anonveil_priv::snapshot::load_state()?;
     if !state.active && !anonveil_priv::apply::table_exists("inet", "anonveil") && !force {

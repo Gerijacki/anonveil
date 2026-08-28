@@ -9,6 +9,10 @@ AnonVeil installed. Next steps:
 
 Read the threat model before relying on this for anything sensitive:
   /usr/share/doc/anonveil/threat-model.md
+
+Optional: to have AnonVeil resume protection automatically after a
+reboot (nftables rules don't survive one on their own), run:
+  sudo systemctl enable anonveil.service
 EOF
 }
 

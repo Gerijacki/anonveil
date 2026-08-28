@@ -15,6 +15,7 @@ pub mod apply;
 pub mod control_session;
 pub mod error;
 pub mod exec;
+pub mod lock;
 pub mod mac;
 pub mod privilege;
 pub mod resolvconf;

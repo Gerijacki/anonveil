@@ -3,6 +3,7 @@
 use std::time::Duration;
 
 use anonveil_core::config::AnonveilConfig;
+use anonveil_core::state::StateSnapshot;
 use anyhow::{bail, Result};
 
 use crate::style;
@@ -22,8 +23,46 @@ fn rollback(ruleset_loaded: bool, torrc_written: bool) {
     }
 }
 
-pub async fn run(config: &AnonveilConfig) -> Result<()> {
+/// `only_if_previously_active`: used by the optional boot-time unit (see
+/// `Commands::BootResume` in `main.rs`) so it can call this unconditionally
+/// on every boot without ever *activating* AnonVeil for a host that never
+/// had it running — it should only ever resume a session that was already
+/// active, never start a fresh one on the system's behalf.
+pub async fn run(config: &AnonveilConfig, only_if_previously_active: bool) -> Result<()> {
     anonveil_priv::privilege::require_root()?;
+    let _lock = anonveil_priv::lock::StateLock::acquire()?;
+
+    let state = anonveil_priv::snapshot::load_state()?;
+
+    if only_if_previously_active && !state.active && !state.panic_active {
+        // Boot unit, and there was nothing active before shutdown to
+        // resume — quietly do nothing rather than activating AnonVeil for
+        // a host that never asked for it to run automatically.
+        return Ok(());
+    }
+
+    // nftables rules don't survive a reboot; `state.json` does (it's a
+    // plain file). A previous panic engaged before a reboot is therefore
+    // now silently gone from the kernel even though the user's last
+    // explicit intent was "cut everything" — reapply that lockdown rather
+    // than quietly falling through to normal Tor-routed operation without
+    // the user's say-so. This subsumes the plain "panic is currently
+    // loaded" case too (that's just `panic_currently_loaded` already true).
+    let panic_currently_loaded = anonveil_priv::apply::panic_active();
+    if panic_currently_loaded || state.panic_active {
+        if !panic_currently_loaded {
+            style::warn(
+                "a previous `anonveil panic` was engaged before this reboot dropped the \
+                 in-kernel rules — reapplying it now rather than silently resuming normal \
+                 operation.",
+            );
+            anonveil_priv::apply::apply_panic()?;
+        }
+        bail!(
+            "PANIC lockdown is engaged. Run `anonveil stop --force` once it's safe to restore \
+             connectivity."
+        );
+    }
 
     if !anonveil_priv::systemd::tor_service_installed() {
         bail!(
@@ -33,8 +72,8 @@ pub async fn run(config: &AnonveilConfig) -> Result<()> {
         );
     }
 
-    let mut state = anonveil_priv::snapshot::load_state()?;
-    if state.active {
+    let table_loaded = anonveil_priv::snapshot::kill_switch_actually_loaded();
+    if state.active && table_loaded {
         style::warn("AnonVeil is already active.");
         return Ok(());
     }
@@ -43,31 +82,43 @@ pub async fn run(config: &AnonveilConfig) -> Result<()> {
     let fw_config = config.to_firewall_config(tor_uid);
     let tor_config = config.to_tor_config();
 
-    if anonveil_priv::apply::panic_active() {
-        bail!(
-            "PANIC lockdown is still engaged from a previous `anonveil panic`. Starting now \
-             would load the normal kill switch underneath it, but the panic table would still \
-             block everything (including Tor's own bootstrap) and `start` would fail with a \
-             confusing bootstrap timeout. Run `anonveil stop --force` first to clear it."
+    // Two ways to get here: a genuinely fresh activation, or resuming a
+    // session that `state.json` says was active but whose kill switch the
+    // kernel has since lost (a reboot, most likely). These need different
+    // snapshots: a fresh run must capture what /etc/resolv.conf looks like
+    // *right now* so `stop` can restore it later; a resume must NOT
+    // recapture, because right now resolv.conf already holds AnonVeil's
+    // own override (that's a plain file, and unlike nftables rules it
+    // *does* survive a reboot) — recapturing here would wrongly enshrine
+    // AnonVeil's own "nameserver 127.0.0.1" as the "original" state and
+    // restore back to *that* on the next `stop`.
+    let is_resume = state.active && !table_loaded;
+    let mut snapshot: StateSnapshot = if is_resume {
+        style::warn(
+            "AnonVeil's state says active, but the kill switch isn't actually loaded (most \
+             likely a reboot dropped it) — reapplying using the original session's saved \
+             configuration.",
         );
-    }
-
-    style::step("capturing pre-activation state...");
-    let mut snapshot = anonveil_priv::snapshot::capture_pre_activation_state()?;
-    if snapshot.anonveil_table_pre_existed {
-        bail!(
-            "AnonVeil's nftables table already exists from a previous session that didn't \
-             clean up. Run `anonveil stop --force` first, or `anonveil panic` right now if \
-             something looks wrong."
-        );
-    }
+        state
+    } else {
+        style::step("capturing pre-activation state...");
+        let snap = anonveil_priv::snapshot::capture_pre_activation_state()?;
+        if snap.anonveil_table_pre_existed {
+            bail!(
+                "AnonVeil's nftables table already exists from a previous session that didn't \
+                 clean up. Run `anonveil stop --force` first, or `anonveil panic` right now if \
+                 something looks wrong."
+            );
+        }
+        snap
+    };
 
     let mut torrc_written = false;
     let mut dns_pointed = false;
     let mut ruleset_loaded = false;
 
     let result: Result<()> = async {
-        if config.mac.randomize_on_start {
+        if !is_resume && config.mac.randomize_on_start {
             style::step("randomizing MAC address...");
             match anonveil_priv::mac::default_interface()
                 .and_then(|iface| anonveil_priv::mac::randomize(&iface).map(|mac| (iface, mac)))
@@ -118,9 +169,13 @@ pub async fn run(config: &AnonveilConfig) -> Result<()> {
         style::error(&format!("activation failed: {e}"));
         style::step("rolling back partial changes...");
         rollback(ruleset_loaded, torrc_written);
-        if dns_pointed {
+        if dns_pointed && !is_resume {
             // Restore whatever /etc/resolv.conf looked like before this
-            // run started, using the snapshot already captured above.
+            // run started, using the snapshot already captured above. On
+            // a resume, the snapshot is the *original* session's — never
+            // "restore" from it mid-resume, since the goal there is
+            // getting back to the resumed state, not unwinding to before
+            // the whole multi-boot session ever began.
             let resolv_state = anonveil_priv::resolvconf::ResolvConfState {
                 content: snapshot.resolv_conf_snapshot.clone(),
                 symlink_target: snapshot.resolv_conf_symlink_target.clone(),
@@ -131,8 +186,7 @@ pub async fn run(config: &AnonveilConfig) -> Result<()> {
     }
 
     snapshot.active = true;
-    state = snapshot;
-    anonveil_priv::snapshot::save_state(&state)?;
+    anonveil_priv::snapshot::save_state(&snapshot)?;
 
     style::ok("AnonVeil is active — all traffic is now routed through Tor.");
     style::dim("  Run `anonveil status` or `anonveil check` to verify.");

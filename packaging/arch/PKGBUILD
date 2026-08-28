@@ -36,4 +36,8 @@ package() {
     install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
     install -Dm644 threat-model.md "$pkgdir/usr/share/doc/$pkgname/threat-model.md"
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    # Installed but NOT enabled by default — see the unit file's own
+    # comments and threat-model.md for why this stays opt-in.
+    install -Dm644 packaging/systemd/anonveil.service \
+        "$pkgdir/usr/lib/systemd/system/anonveil.service"
 }

@@ -1,0 +1,23 @@
+[Unit]
+Description=AnonVeil — resume Tor kill switch protection after boot
+Documentation=https://github.com/Gerijacki/anonveil
+# nftables rules loaded via `nft -f` do not survive a reboot on their own;
+# this unit is what makes a session that was active before shutdown come
+# back after one. It is installed but NOT enabled by default — enable it
+# explicitly (`sudo systemctl enable anonveil.service`) if you want that.
+# See threat-model.md.
+After=network-online.target tor.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# `boot-resume` (unlike `start`) is a safe no-op if AnonVeil was not
+# active when the system last shut down — it never activates AnonVeil on
+# a host that never asked for it to run automatically.
+ExecStart=/usr/bin/anonveil boot-resume
+# stop/panic clean up on their own; nothing to do here on shutdown.
+ExecStop=/bin/true
+
+[Install]
+WantedBy=multi-user.target

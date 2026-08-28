@@ -57,3 +57,64 @@ jobs:
       - name: run privileged integration tests
         run: |
           cargo test -p anonveil-priv --features integration -- --test-threads=1
+
+  e2e-smoke-test:
+    name: end-to-end smoke test (real tor)
+    # The single highest-value correctness check in this whole pipeline:
+    # actually runs the compiled `anonveil` binary through a real
+    # start -> check -> stop cycle against a real `tor` daemon and the
+    # real Tor network (check.torproject.org), on a genuine systemd VM
+    # (not a container — `systemctl reload-or-restart tor.service`, which
+    # anonveil-priv::systemd drives for real, needs a running init system,
+    # which GitHub's ubuntu-latest runner has and a plain container does
+    # not). Push-to-main only: it's slow (real Tor bootstrap) and touches
+    # the runner's live network/firewall state more than any other job.
+    needs: test-linux
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - run: cargo build --release -p anonveil-cli
+      - name: install tor + nftables
+        run: sudo apt-get update && sudo apt-get install -y tor nftables
+      - name: install anonveil + its example config
+        run: |
+          sudo install -Dm755 target/release/anonveil /usr/local/bin/anonveil
+          sudo mkdir -p /etc/anonveil
+          sudo cp config/config.example.toml /etc/anonveil/config.toml
+      - name: full start -> check -> stop cycle against real Tor
+        run: |
+          set -euo pipefail
+
+          echo "=== anonveil start ==="
+          sudo anonveil start
+
+          echo "=== kill switch is actually loaded in the kernel ==="
+          sudo nft list table inet anonveil
+
+          echo "=== anonveil check reports real Tor egress ==="
+          sudo anonveil check | tee /tmp/check-output.txt
+          grep -q "Traffic from this host is exiting through Tor" /tmp/check-output.txt
+
+          echo "=== anonveil status agrees, with no state-mismatch warning ==="
+          sudo anonveil status | tee /tmp/status-output.txt
+          grep -q "ACTIVE" /tmp/status-output.txt
+          ! grep -q "STATE MISMATCH" /tmp/status-output.txt
+
+          echo "=== anonveil stop ==="
+          sudo anonveil stop
+
+          echo "=== kill switch table is gone ==="
+          if sudo nft list table inet anonveil >/dev/null 2>&1; then
+            echo "table inet anonveil is still present after stop!" >&2
+            exit 1
+          fi
+
+          echo "=== resolv.conf was restored to something real ==="
+          cat /etc/resolv.conf
+      - name: dump AnonVeil state/logs on failure
+        if: failure()
+        run: |
+          sudo find /var/lib/anonveil /var/log/anonveil -type f -exec sh -c 'echo "--- {} ---"; cat "{}"' \; || true
+          sudo journalctl -u tor --no-pager || true

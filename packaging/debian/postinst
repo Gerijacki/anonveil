@@ -11,6 +11,13 @@ fi
 
 mkdir -p /var/lib/anonveil /var/log/anonveil
 
+# Makes the optional anonveil.service unit (installed, but never enabled
+# here) visible to `systemctl enable`. A harmless no-op wherever systemd
+# isn't PID 1 (e.g. a container build).
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl daemon-reload 2>/dev/null || true
+fi
+
 cat <<'EOF'
 
 AnonVeil installed. Next steps:
@@ -20,6 +27,10 @@ AnonVeil installed. Next steps:
 
 Read the threat model before relying on this for anything sensitive:
   /usr/share/doc/anonveil/threat-model.md
+
+Optional: to have AnonVeil resume protection automatically after a
+reboot (nftables rules don't survive one on their own), run:
+  sudo systemctl enable anonveil.service
 EOF
 
 exit 0

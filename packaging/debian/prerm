@@ -1,0 +1,13 @@
+#!/bin/sh
+# Pre-removal hook for the AnonVeil .deb package.
+# Mirrors packaging/arch/anonveil.install's pre_remove: warn (don't block)
+# if AnonVeil is still active when the package is being removed, so the
+# user knows to restore their firewall/DNS configuration themselves.
+set -e
+
+if command -v anonveil >/dev/null 2>&1 && anonveil status 2>/dev/null | grep -q ACTIVE; then
+    echo "==> AnonVeil is still active. Run 'anonveil stop' before/after removing the package"
+    echo "    to make sure your firewall and DNS configuration are restored."
+fi
+
+exit 0

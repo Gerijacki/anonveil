@@ -1,9 +1,12 @@
 # Manual testing checklist
 
-CI verifies rule generation, unit tests, and (in a privileged
-container) that the real ruleset loads and unloads correctly against
-`nft`. It cannot verify the full, real Tor bootstrap + systemd + DNS
-flow end-to-end — that needs an actual Arch or Debian machine/VM with
+CI verifies rule generation, unit tests, (in a privileged container)
+that the real ruleset loads and unloads correctly against `nft`, and
+(in the push-to-main `e2e-smoke-test` job) a full real
+`start`/`check`/`stop` cycle against a real `tor` daemon. It cannot
+verify an actual reboot, though (GitHub Actions runners are ephemeral —
+there's nothing to reboot back into), so that and a few other
+VM-only checks still need an actual Arch or Debian machine/VM with
 `tor` installed and a real network connection. Run this checklist
 before tagging a release.
 
@@ -57,6 +60,19 @@ before tagging a release.
     `sudo anonveil mac randomize` changes the interface's MAC
     (`ip link show <iface>`), `sudo anonveil mac restore` puts the
     original back.
+16. **Reboot resilience**: with AnonVeil active, `sudo systemctl enable
+    anonveil.service` then reboot the VM. After boot, `anonveil status`
+    (before running `start` again) should show the kill switch reapplied
+    automatically with no STATE MISMATCH warning, and step 5's
+    Tor-reachability check should still pass. Then `sudo systemctl
+    disable anonveil.service`, reboot again, and confirm this time
+    `anonveil status` reports the STATE MISMATCH warning (kill switch
+    gone, state.json still says active) instead of a false ACTIVE.
+17. **Concurrent invocation is rejected, not racy**: with AnonVeil
+    inactive, run `sudo anonveil start & sudo anonveil start; wait` —
+    exactly one should succeed; the other should fail fast with "another
+    `anonveil` operation is already in progress", not corrupt
+    `state.json` or leave the firewall half-configured.
 
 If any step fails, that's a release blocker — file an issue with which
 step failed before tagging.

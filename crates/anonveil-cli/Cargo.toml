@@ -45,4 +45,7 @@ assets = [
     ["../../config/config.example.toml", "usr/share/anonveil/config.example.toml", "644"],
     ["../../README.md", "usr/share/doc/anonveil/README.md", "644"],
     ["../../threat-model.md", "usr/share/doc/anonveil/threat-model.md", "644"],
+    # Installed but NOT enabled by default — see the unit file's own
+    # comments and threat-model.md for why this stays opt-in.
+    ["../../packaging/systemd/anonveil.service", "lib/systemd/system/anonveil.service", "644"],
 ]

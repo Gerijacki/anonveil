@@ -89,6 +89,16 @@ These are documented tradeoffs, not oversights:
   Tor (`CookieAuthentication 1` in the torrc fragment it writes) and
   keeps the control-port client simpler and more auditable — see
   `crates/anonveil-core/src/control/`.
+- **nftables rules do not survive a reboot on their own.** If AnonVeil is
+  active and the host reboots, the kill switch is gone until something
+  reapplies it — `state.json` will still say `active: true`, but
+  `anonveil status`/the TUI now detect and loudly flag that mismatch
+  rather than reporting a false ACTIVE. An **opt-in** `anonveil.service`
+  systemd unit (installed by both packages, never enabled automatically)
+  resumes a previously-active session at boot for anyone who wants that;
+  see `packaging/systemd/anonveil.service`. It deliberately stays opt-in
+  rather than default-on — see `ROADMAP.md`'s "Not planned" reasoning on
+  silent behavior changes, which applies here too.
 - **v0.1 does not act as a gateway/router for other devices.** Only
   this host's own traffic is protected. Routing a phone or another
   machine's traffic through an AnonVeil host is a tracked `ROADMAP.md`

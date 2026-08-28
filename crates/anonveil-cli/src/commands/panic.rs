@@ -6,6 +6,7 @@ use crate::style;
 
 pub fn run() -> Result<()> {
     anonveil_priv::privilege::require_root()?;
+    let _lock = anonveil_priv::lock::StateLock::acquire()?;
 
     anonveil_priv::apply::apply_panic()?;
 

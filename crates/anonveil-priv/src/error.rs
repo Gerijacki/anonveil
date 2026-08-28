@@ -39,6 +39,12 @@ pub enum PrivError {
 
     #[error("no active AnonVeil session found in {0}")]
     NoActiveState(String),
+
+    #[error(
+        "another `anonveil` operation is already in progress (start/stop/restart/panic all \
+         hold an exclusive lock while they run) — wait for it to finish and try again"
+    )]
+    AnotherOperationInProgress,
 }
 
 pub type PrivResult<T> = Result<T, PrivError>;

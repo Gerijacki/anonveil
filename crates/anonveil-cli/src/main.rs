@@ -53,6 +53,12 @@ enum Commands {
     /// Launch the live-status dashboard (also the default with no
     /// subcommand).
     Dashboard,
+    /// Resume a session that was active before a reboot, if any. Used by
+    /// the optional `anonveil.service` boot unit — not intended to be run
+    /// by hand (use `start` for that). A no-op if AnonVeil wasn't active
+    /// when the system last shut down.
+    #[command(hide = true)]
+    BootResume,
 }
 
 #[derive(Subcommand)]
@@ -81,8 +87,9 @@ async fn main() -> Result<()> {
     let result = match cli.command {
         Some(Commands::Start) => {
             banner::print_banner();
-            commands::start::run(&config).await
+            commands::start::run(&config, false).await
         }
+        Some(Commands::BootResume) => commands::start::run(&config, true).await,
         Some(Commands::Stop { force }) => commands::stop::run(force),
         Some(Commands::Restart) => commands::restart::run(&config).await,
         Some(Commands::Newnym) => commands::newnym::run(&config).await,

@@ -22,6 +22,15 @@ pub async fn run(config: &AnonveilConfig) -> Result<()> {
         style::dim(&format!("  since: {since}"));
     }
 
+    if !anonveil_priv::snapshot::kill_switch_actually_loaded() {
+        style::error(
+            "STATE MISMATCH: state.json says active, but the kill switch is NOT actually \
+             loaded right now (most likely a reboot dropped it — nftables rules don't survive \
+             one on their own). Traffic is currently UNPROTECTED. Run `sudo anonveil start` to \
+             reapply it.",
+        );
+    }
+
     match anonveil_priv::control_session::connect_and_authenticate(config.network.control_port)
         .await
     {

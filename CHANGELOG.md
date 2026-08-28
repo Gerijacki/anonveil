@@ -6,6 +6,29 @@ project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Reboot-drift detection**: `anonveil status` and the TUI now compare
+  persisted state against whether the kill switch is *actually* loaded in
+  the kernel right now, and loudly flag a mismatch (nftables rules don't
+  survive a reboot on their own) instead of trusting `state.json` blindly.
+- **Optional `anonveil.service` boot unit** (`packaging/systemd/`),
+  installed but never enabled automatically, that resumes a session which
+  was active before a reboot — including safely reapplying a `panic`
+  lockdown that was engaged before shutdown, rather than silently
+  resuming normal Tor-routed operation without the user's say-so. Enable
+  with `sudo systemctl enable anonveil.service`.
+- An exclusive lock (`anonveil-priv::lock`) now guards `start`/`stop`/
+  `panic` against concurrent invocations racing `state.json` and the live
+  firewall/DNS/torrc configuration against each other.
+- Debian packaging now warns on package removal if AnonVeil is still
+  active (`packaging/debian/prerm`), matching the check the Arch
+  packaging already had.
+- CI: a new push-to-main `e2e-smoke-test` job runs the actual compiled
+  `anonveil` binary through a real `start` → `check` → `stop` cycle
+  against a real `tor` daemon and the real Tor network, on a genuine
+  systemd VM — not just rule-generation tests.
+
 ### Fixed
 
 - **`stop`/`stop --force` could delete a live `/etc/resolv.conf`** if run

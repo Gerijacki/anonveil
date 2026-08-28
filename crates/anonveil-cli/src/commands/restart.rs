@@ -14,5 +14,5 @@ pub async fn run(config: &AnonveilConfig) -> Result<()> {
         style::step("stopping current session before restarting...");
         stop::run(false)?;
     }
-    start::run(config).await
+    start::run(config, false).await
 }

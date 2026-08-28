@@ -65,6 +65,17 @@ fn draw_status(frame: &mut Frame, area: Rect, app: &App) {
                 theme::muted(),
             )));
         }
+        if !app.kill_switch_actually_loaded {
+            lines.push(Line::from(""));
+            lines.push(Line::from(Span::styled(
+                "⚠ STATE MISMATCH: kill switch is NOT actually loaded (reboot?) — traffic is",
+                theme::error(),
+            )));
+            lines.push(Line::from(Span::styled(
+                "  UNPROTECTED right now. Run `anonveil start` to reapply it.",
+                theme::error(),
+            )));
+        }
         lines.push(Line::from(""));
         lines.push(status_line("tor bootstrapped", app.tor_bootstrapped));
         lines.push(status_line("circuit established", app.circuit_established));

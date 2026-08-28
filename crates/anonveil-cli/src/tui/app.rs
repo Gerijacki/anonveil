@@ -5,6 +5,11 @@ use anonveil_core::state::StateSnapshot;
 
 pub struct App {
     pub state: StateSnapshot,
+    /// Whether `table inet anonveil` is actually loaded right now,
+    /// independent of what `state.active` says — see
+    /// `anonveil_priv::snapshot::kill_switch_actually_loaded`. Only
+    /// meaningful (and only checked) while `state.active` is true.
+    pub kill_switch_actually_loaded: bool,
     pub tor_bootstrapped: Option<bool>,
     pub circuit_established: Option<bool>,
     pub control_error: Option<String>,
@@ -15,6 +20,7 @@ impl App {
     pub fn new() -> Self {
         Self {
             state: StateSnapshot::default(),
+            kill_switch_actually_loaded: false,
             tor_bootstrapped: None,
             circuit_established: None,
             control_error: None,
@@ -31,10 +37,13 @@ impl App {
         self.tor_bootstrapped = None;
         self.circuit_established = None;
         self.control_error = None;
+        self.kill_switch_actually_loaded = false;
 
         if !self.state.active {
             return;
         }
+
+        self.kill_switch_actually_loaded = anonveil_priv::snapshot::kill_switch_actually_loaded();
 
         match anonveil_priv::control_session::connect_and_authenticate(config.network.control_port)
             .await

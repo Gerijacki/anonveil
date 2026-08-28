@@ -14,6 +14,18 @@ use crate::error::PrivResult;
 use crate::exec::run;
 use crate::resolvconf;
 
+/// Whether the *live* kill switch (`table inet anonveil`) is actually
+/// loaded right now — independent of what `state.json` says.
+///
+/// nftables rules do not survive a reboot unless something reapplies them
+/// (AnonVeil's optional boot unit does; a bare reboot with it disabled
+/// does not). `state.active == true` on its own is therefore not proof of
+/// protection — callers that report status to a human (`status`, the TUI)
+/// must compare it against this, not trust the persisted flag alone.
+pub fn kill_switch_actually_loaded() -> bool {
+    table_exists("inet", anonveil_core::firewall::FirewallConfig::TABLE_NAME)
+}
+
 pub fn now_rfc3339() -> String {
     OffsetDateTime::now_utc()
         .format(&Rfc3339)

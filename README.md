@@ -57,7 +57,13 @@ separate OS, no VM, no dedicated hardware.
 - **`newnym`** — request a fresh Tor circuit/identity without touching
   the firewall.
 - **`status` / `check`** — live circuit info and a real
-  Tor-reachability self-test.
+  Tor-reachability self-test. `status` and the TUI detect and flag it if
+  the kill switch isn't actually loaded despite `state.json` saying it
+  should be (e.g. after a reboot) — never a silent false "ACTIVE".
+- **Optional boot persistence** — `anonveil.service` (installed, not
+  enabled by default) resumes a session that was active before a reboot,
+  including a `panic` lockdown. `sudo systemctl enable anonveil.service`
+  to opt in.
 - **`mac randomize` / `mac restore`** — optional MAC address spoofing.
 - **A live TUI dashboard** — run `anonveil` with no arguments.
 - **Native `.onion` browsing** — Tor's own hostname-mapping resolves
