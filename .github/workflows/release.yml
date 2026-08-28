@@ -90,6 +90,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: upload SHA256SUMS
-        run: gh release upload "${{ github.ref_name }}" assets/SHA256SUMS --clobber
+        run: gh release upload "${{ github.ref_name }}" assets/SHA256SUMS --repo "${{ github.repository }}" --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
