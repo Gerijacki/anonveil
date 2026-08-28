@@ -54,8 +54,14 @@ before tagging a release.
     (`IsTor:false`, real IP, original `/etc/resolv.conf`) is fully
     restored.
 14. **Dashboard**: `anonveil` with no arguments launches the TUI,
-    shows live status, `r` refreshes, `q` exits cleanly (terminal
-    state restored, no leftover alternate-screen garbage).
+    shows live status (including bandwidth counters once active), `r`
+    refreshes, `q` exits cleanly (terminal state restored, no leftover
+    alternate-screen garbage). Then, from the dashboard: press `s` while
+    inactive — it leaves the alternate screen, runs a real `start` with
+    normal output, waits for Enter, and returns to a now-ACTIVE
+    dashboard. Press `n` — confirm `newnym`'s normal output, then
+    `p` — confirm `panic`'s output and that the dashboard reflects
+    PANIC MODE afterward. `sudo anonveil stop --force` to clean up.
 15. **MAC randomization** (if testing that feature):
     `sudo anonveil mac randomize` changes the interface's MAC
     (`ip link show <iface>`), `sudo anonveil mac restore` puts the
@@ -73,6 +79,28 @@ before tagging a release.
     exactly one should succeed; the other should fail fast with "another
     `anonveil` operation is already in progress", not corrupt
     `state.json` or leave the firewall half-configured.
+18. **`anonveil doctor`** reports all checks passing on a properly set
+    up host, exits 0. Break one precondition at a time (e.g. `sudo mv
+    /usr/bin/tor /usr/bin/tor.bak`) and confirm `doctor` reports it
+    clearly and exits non-zero, without crashing on a subsequent broken
+    check. Restore afterward.
+19. **`anonveil audit-ruleset`** succeeds without root, and its output
+    matches what `sudo nft list table inet anonveil` shows once `start`
+    has actually loaded it (same rules, same order).
+20. **Completions and man page**: `anonveil completions bash|zsh|fish`
+    and `anonveil man` each produce non-empty, well-formed output; on the
+    installed package, confirm the completion files and `man anonveil`
+    actually work in a fresh shell.
+21. **Exit-node selection**: set `exit_nodes = ["us"]` in
+    `config.toml`, `sudo anonveil restart`, then confirm via `anonveil
+    check` that the reported exit IP geolocates to the US (a manual,
+    outside-the-tool check — AnonVeil has no built-in geolocation).
+22. **Bridges** (requires real bridge lines from
+    bridges.torproject.org — cannot be automated or faked): set
+    `[network.bridges] enabled = true` with real lines, confirm
+    `obfs4proxy` is installed, `sudo anonveil doctor` doesn't warn about
+    it, `sudo anonveil start` succeeds, and `anonveil check` confirms
+    Tor reachability same as step 5.
 
 If any step fails, that's a release blocker — file an issue with which
 step failed before tagging.

@@ -32,6 +32,20 @@ impl From<Ipv6Setting> for Ipv6Mode {
     }
 }
 
+/// Pluggable-transport bridge configuration (`[network.bridges]`). Off by
+/// default — bridges are a real hole-punching-in-a-censored-network
+/// feature, not something to turn on implicitly. See `torrc::generate`
+/// for exactly what this produces, and `threat-model.md` for what bridges
+/// do and don't add over plain Tor.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(default)]
+pub struct BridgeConfig {
+    pub enabled: bool,
+    /// Raw `Bridge` lines from bridges.torproject.org or a contact —
+    /// AnonVeil never fetches or invents these itself.
+    pub lines: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct NetworkConfig {
@@ -41,6 +55,16 @@ pub struct NetworkConfig {
     pub ipv6_mode: Ipv6Setting,
     pub excluded_tcp_ports: Vec<u16>,
     pub excluded_interfaces: Vec<String>,
+    pub bridges: BridgeConfig,
+    /// Two-letter country codes (e.g. `"us"`) or relay fingerprints exit
+    /// circuits are constrained to. Empty means no constraint. Shrinks
+    /// the anonymity set the fewer/more specific entries there are — see
+    /// `configuration.md`.
+    pub exit_nodes: Vec<String>,
+    pub exclude_exit_nodes: Vec<String>,
+    /// Whether `exit_nodes`/`exclude_exit_nodes` is a hard requirement
+    /// (Tor's `StrictNodes`) rather than a preference.
+    pub strict_exit_nodes: bool,
 }
 
 impl Default for NetworkConfig {
@@ -53,6 +77,10 @@ impl Default for NetworkConfig {
             ipv6_mode: Ipv6Setting::default(),
             excluded_tcp_ports: Vec::new(),
             excluded_interfaces: Vec::new(),
+            bridges: BridgeConfig::default(),
+            exit_nodes: Vec::new(),
+            exclude_exit_nodes: Vec::new(),
+            strict_exit_nodes: false,
         }
     }
 }
@@ -147,6 +175,11 @@ impl AnonveilConfig {
             dns_port: self.network.dns_port,
             control_port: self.network.control_port,
             data_dir: TorConfig::default().data_dir,
+            bridges_enabled: self.network.bridges.enabled,
+            bridge_lines: self.network.bridges.lines.clone(),
+            exit_nodes: self.network.exit_nodes.clone(),
+            exclude_exit_nodes: self.network.exclude_exit_nodes.clone(),
+            strict_exit_nodes: self.network.strict_exit_nodes,
         }
     }
 }

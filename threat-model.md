@@ -99,6 +99,15 @@ These are documented tradeoffs, not oversights:
   see `packaging/systemd/anonveil.service`. It deliberately stays opt-in
   rather than default-on — see `ROADMAP.md`'s "Not planned" reasoning on
   silent behavior changes, which applies here too.
+- **Bridges hide that you're using Tor, not who you are once connected.**
+  `[network.bridges]` (obfs4 pluggable transports) makes your connection
+  to the Tor network harder for a local network observer or censor to
+  identify as Tor traffic. It does not add anonymity beyond what Tor
+  already provides once the connection is established — the rest of this
+  threat model applies identically whether bridges are in use or not.
+  Constraining `exit_nodes`/`exclude_exit_nodes` has the opposite kind of
+  cost: it shrinks the pool of possible exit relays, which is a tradeoff
+  against anonymity, not for it — see `configuration.md`.
 - **v0.1 does not act as a gateway/router for other devices.** Only
   this host's own traffic is protected. Routing a phone or another
   machine's traffic through an AnonVeil host is a tracked `ROADMAP.md`

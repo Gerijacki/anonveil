@@ -25,3 +25,18 @@ pub fn is_quit(key: &KeyEvent) -> bool {
 pub fn is_refresh(key: &KeyEvent) -> bool {
     matches!(key.code, KeyCode::Char('r'))
 }
+
+/// Start if inactive, stop if active — the dashboard doesn't expose
+/// separate start/stop keys, it toggles based on what `app.state.active`
+/// already says (same as the icon/label it's showing).
+pub fn is_toggle_start(key: &KeyEvent) -> bool {
+    matches!(key.code, KeyCode::Char('s'))
+}
+
+pub fn is_panic(key: &KeyEvent) -> bool {
+    matches!(key.code, KeyCode::Char('p'))
+}
+
+pub fn is_newnym(key: &KeyEvent) -> bool {
+    matches!(key.code, KeyCode::Char('n'))
+}

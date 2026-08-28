@@ -49,3 +49,25 @@ pub fn run_ok(command: &str, args: &[&str]) -> bool {
         .map(|o| o.status.success())
         .unwrap_or(false)
 }
+
+/// Whether `name` resolves to an executable file somewhere on `$PATH` —
+/// a first-party `which`, so `anonveil doctor` (and anything else that
+/// wants to check a binary is installed) doesn't depend on the `which`
+/// command itself being present.
+pub fn command_exists(name: &str) -> bool {
+    let Some(path_var) = std::env::var_os("PATH") else {
+        return false;
+    };
+    std::env::split_paths(&path_var).any(|dir| {
+        let candidate = dir.join(name);
+        candidate
+            .metadata()
+            .is_ok_and(|meta| meta.is_file() && is_executable(&meta))
+    })
+}
+
+#[cfg(unix)]
+fn is_executable(meta: &std::fs::Metadata) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    meta.permissions().mode() & 0o111 != 0
+}

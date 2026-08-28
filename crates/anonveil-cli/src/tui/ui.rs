@@ -79,6 +79,19 @@ fn draw_status(frame: &mut Frame, area: Rect, app: &App) {
         lines.push(Line::from(""));
         lines.push(status_line("tor bootstrapped", app.tor_bootstrapped));
         lines.push(status_line("circuit established", app.circuit_established));
+        if let Some((read, written)) = app.traffic {
+            lines.push(Line::from(vec![
+                Span::styled("  traffic: ", theme::muted()),
+                Span::styled(
+                    format!(
+                        "{} down / {} up",
+                        crate::style::human_bytes(read),
+                        crate::style::human_bytes(written)
+                    ),
+                    theme::muted(),
+                ),
+            ]));
+        }
         if let Some(err) = &app.control_error {
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
@@ -124,7 +137,13 @@ fn draw_footer(frame: &mut Frame, area: Rect) {
         Span::styled(" [q] ", theme::title()),
         Span::styled("quit   ", theme::muted()),
         Span::styled("[r] ", theme::title()),
-        Span::styled("refresh now", theme::muted()),
+        Span::styled("refresh   ", theme::muted()),
+        Span::styled("[s] ", theme::title()),
+        Span::styled("start/stop   ", theme::muted()),
+        Span::styled("[p] ", theme::title()),
+        Span::styled("panic   ", theme::muted()),
+        Span::styled("[n] ", theme::title()),
+        Span::styled("newnym", theme::muted()),
     ]);
     frame.render_widget(Paragraph::new(line), area);
 }

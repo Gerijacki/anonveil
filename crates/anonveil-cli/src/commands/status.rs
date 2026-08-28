@@ -36,7 +36,12 @@ pub async fn run(config: &AnonveilConfig) -> Result<()> {
     {
         Ok(mut client) => {
             match client
-                .get_info(&["status/bootstrap-phase", "status/circuit-established"])
+                .get_info(&[
+                    "status/bootstrap-phase",
+                    "status/circuit-established",
+                    "traffic/read",
+                    "traffic/written",
+                ])
                 .await
             {
                 Ok(info) => {
@@ -56,6 +61,19 @@ pub async fn run(config: &AnonveilConfig) -> Result<()> {
                         "  circuit established: {}",
                         if circuit_established { "yes" } else { "no" }
                     ));
+                    if let (Some(read), Some(written)) =
+                        (info.get("traffic/read"), info.get("traffic/written"))
+                    {
+                        if let (Ok(read), Ok(written)) =
+                            (read.parse::<u64>(), written.parse::<u64>())
+                        {
+                            style::dim(&format!(
+                                "  traffic: {} down / {} up",
+                                style::human_bytes(read),
+                                style::human_bytes(written)
+                            ));
+                        }
+                    }
                 }
                 Err(e) => style::warn(&format!("could not query tor status: {e}")),
             }

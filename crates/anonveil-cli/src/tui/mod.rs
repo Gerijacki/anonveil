@@ -2,6 +2,7 @@
 //! `anonveil` is run with no subcommand (or via `anonveil dashboard`
 //! explicitly).
 
+pub mod actions;
 pub mod app;
 pub mod event;
 pub mod theme;
@@ -34,6 +35,15 @@ pub async fn run(config: &AnonveilConfig) -> Result<()> {
                     break Ok(());
                 }
                 if event::is_refresh(&key) {
+                    app.refresh(config).await;
+                    last_refresh = Instant::now();
+                }
+                if let Some(action) = actions::Action::for_key(&key) {
+                    // Leave the dashboard's alternate screen entirely for
+                    // the duration of the action — see actions.rs for why.
+                    ratatui::restore();
+                    actions::run(action, config, app.state.active).await;
+                    terminal = ratatui::init();
                     app.refresh(config).await;
                     last_refresh = Instant::now();
                 }

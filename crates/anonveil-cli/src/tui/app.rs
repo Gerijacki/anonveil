@@ -12,6 +12,9 @@ pub struct App {
     pub kill_switch_actually_loaded: bool,
     pub tor_bootstrapped: Option<bool>,
     pub circuit_established: Option<bool>,
+    /// (bytes read, bytes written) since Tor started, from `GETINFO
+    /// traffic/read`/`traffic/written`.
+    pub traffic: Option<(u64, u64)>,
     pub control_error: Option<String>,
     pub should_quit: bool,
 }
@@ -23,6 +26,7 @@ impl App {
             kill_switch_actually_loaded: false,
             tor_bootstrapped: None,
             circuit_established: None,
+            traffic: None,
             control_error: None,
             should_quit: false,
         }
@@ -36,6 +40,7 @@ impl App {
         self.state = anonveil_priv::snapshot::load_state().unwrap_or_default();
         self.tor_bootstrapped = None;
         self.circuit_established = None;
+        self.traffic = None;
         self.control_error = None;
         self.kill_switch_actually_loaded = false;
 
@@ -50,7 +55,12 @@ impl App {
         {
             Ok(mut client) => {
                 match client
-                    .get_info(&["status/bootstrap-phase", "status/circuit-established"])
+                    .get_info(&[
+                        "status/bootstrap-phase",
+                        "status/circuit-established",
+                        "traffic/read",
+                        "traffic/written",
+                    ])
                     .await
                 {
                     Ok(info) => {
@@ -64,6 +74,16 @@ impl App {
                                 .map(|v| v == "1")
                                 .unwrap_or(false),
                         );
+                        self.traffic = match (info.get("traffic/read"), info.get("traffic/written"))
+                        {
+                            (Some(read), Some(written)) => {
+                                match (read.parse::<u64>(), written.parse::<u64>()) {
+                                    (Ok(read), Ok(written)) => Some((read, written)),
+                                    _ => None,
+                                }
+                            }
+                            _ => None,
+                        };
                     }
                     Err(e) => self.control_error = Some(e.to_string()),
                 }

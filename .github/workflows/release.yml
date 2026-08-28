@@ -52,6 +52,14 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
       - run: cargo install cargo-deb --locked
       - run: cargo build --release -p anonveil-cli
+      - name: generate shell completions + man page
+        run: |
+          set -e
+          bin=target/release/anonveil
+          "$bin" completions bash > target/release/anonveil.bash
+          "$bin" completions zsh > target/release/_anonveil
+          "$bin" completions fish > target/release/anonveil.fish
+          "$bin" man > target/release/anonveil.1
       - run: cargo deb -p anonveil-cli --no-build -o target/debian/anonveil_amd64.deb
       - name: upload .deb to release
         run: gh release upload "${{ github.ref_name }}" target/debian/anonveil_amd64.deb --clobber

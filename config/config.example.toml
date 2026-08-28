@@ -31,6 +31,28 @@ excluded_tcp_ports = []
 # DNS/TCP redirection itself — see threat-model.md for why.
 excluded_interfaces = []
 
+# Two-letter country codes (e.g. "us") or relay fingerprints to constrain
+# exit circuits to. Empty means Tor's own default selection. Constraining
+# this shrinks your anonymity set — see the docs before setting it.
+exit_nodes = []
+
+# Country codes/fingerprints exit circuits must avoid.
+exclude_exit_nodes = []
+
+# Whether exit_nodes/exclude_exit_nodes is a hard requirement (Tor's
+# StrictNodes) rather than a preference. Can mean circuits fail to build
+# if too few matching relays are available.
+strict_exit_nodes = false
+
+[network.bridges]
+# Use pluggable-transport bridges instead of connecting to the public Tor
+# network directly. Off by default. Requires obfs4proxy installed.
+enabled = false
+
+# Raw "Bridge" lines from https://bridges.torproject.org or a trusted
+# contact — AnonVeil never fetches or invents these itself.
+lines = []
+
 [mac]
 # Randomize the network interface's MAC address every time `anonveil
 # start` runs. Off by default — enable deliberately, not as a surprise.

@@ -7,9 +7,13 @@ is a scope decision explained in `threat-model.md`, not an oversight.
 
 ## Near-term
 
-- **obfs4 / pluggable transport bridge support** — for using AnonVeil
-  in networks that block plain Tor. Config surface for bridge lines
-  and a bundled `obfs4proxy` dependency.
+- **Per-circuit exit-relay detail in `status`/the TUI** (nickname/
+  fingerprint of the current exit, not just bootstrap/circuit-established
+  booleans and the bandwidth counters already shown). Needs
+  `anonveil-core::control::protocol` to parse `+`-prefixed multi-line
+  *data* replies (`GETINFO circuit-status`'s actual wire format), which
+  it deliberately doesn't today — a real, scoped protocol extension, not
+  a one-line addition.
 - **IPv6 routed through Tor** (`ipv6_mode = "route_through_tor"`) —
   currently reserved in the config schema but behaves identically to
   `"block"`. Needs Tor's IPv6 SOCKS/TransPort support wired through
