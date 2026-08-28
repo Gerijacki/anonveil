@@ -22,19 +22,7 @@ down, AnonVeil fails *closed*, not open.
 
 ## What it does
 
-```console
-$ sudo anonveil start
-:: writing torrc fragment and reloading tor...
-:: pointing DNS at Tor...
-:: loading kill switch...
-:: waiting for tor to finish bootstrapping (this can take a moment)...
-✔ AnonVeil is active — all traffic is now routed through Tor.
-
-$ anonveil check
-:: checking Tor reachability via check.torproject.org...
-✔ Traffic from this host is exiting through Tor.
-  exit relay IP: 51.15.0.1
-```
+![A real terminal session: `anonveil start`, `anonveil check`, the live dashboard, and `anonveil stop` — recorded against a real Tor daemon, not staged.](docs/assets/hero.gif)
 
 AnonVeil redirects **every** outbound TCP connection and **every** DNS
 query on the host through Tor, and drops anything that doesn't go
@@ -65,13 +53,27 @@ separate OS, no VM, no dedicated hardware.
   including a `panic` lockdown. `sudo systemctl enable anonveil.service`
   to opt in.
 - **`mac randomize` / `mac restore`** — optional MAC address spoofing.
-- **A live TUI dashboard** — run `anonveil` with no arguments.
+- **A live TUI dashboard that's also a control panel** — run `anonveil`
+  with no arguments; `[s]` start/stop, `[p]` panic, `[n]` newnym, right
+  from the dashboard, alongside live bootstrap/circuit/bandwidth status.
+- **`doctor`** — one command checks every precondition `start` depends
+  on (commands installed, the tor service, config validity, port
+  availability, state-vs-reality agreement) instead of failing them one
+  at a time.
+- **`audit-ruleset`** — prints the *exact* nftables script `start` would
+  load, no root required, nothing applied. Audit before you trust it.
+- **Shell completions and a man page**, generated from the real CLI
+  (not hand-maintained) and installed automatically by both packages.
+- **obfs4 bridges and exit-node/country selection** — for networks that
+  block plain Tor, or when you need to constrain where circuits exit.
 - **Native `.onion` browsing** — Tor's own hostname-mapping resolves
   `.onion`/`.exit` addresses without a real DNS lookup ever happening.
 - **Honest documentation** — see [`threat-model.md`](threat-model.md)
   for exactly what this does and doesn't protect against. It's not a
   substitute for Tor Browser's anti-fingerprinting; it's a complement
   to it.
+
+![The live dashboard: real bootstrap/circuit status and bandwidth counters, control panel keys in the footer.](docs/assets/dashboard.png)
 
 ## Install
 
@@ -104,14 +106,17 @@ sudo install -Dm755 target/release/anonveil /usr/local/bin/anonveil
 
 Requires `tor`, `nftables`, and `iproute2` — installed automatically as
 package dependencies, or install them yourself if building from source.
+Shell completions (bash/zsh/fish) and a man page are installed
+automatically by both packages — try `anonveil <TAB>` or `man anonveil`.
 
 ## Quickstart
 
 ```sh
-sudo anonveil start     # activate the kill switch
+sudo anonveil doctor     # check every precondition at once
+sudo anonveil start      # activate the kill switch
 anonveil check           # confirm traffic is exiting through Tor
-anonveil                 # live dashboard (Ctrl+C / q to exit)
-sudo anonveil stop        # restore your original configuration
+anonveil                 # live dashboard — s/p/n control it, q to exit
+sudo anonveil stop       # restore your original configuration
 ```
 
 Configuration lives at `/etc/anonveil/config.toml` — see
@@ -120,21 +125,23 @@ option, documented inline.
 
 ## How it works
 
-```
-                 ┌─────────────────────────────────────────┐
-                 │              this host                  │
-                 │                                          │
-  every app ───► │  nftables (inet anonveil table)          │
-                 │    │                                      │
-                 │    ├─ port 53 (DNS)  ──► redirect ──┐     │
-                 │    ├─ TCP            ──► redirect ──┤     │
-                 │    └─ everything else ──► DROP      │     │
-                 │                                      ▼     │
-                 │                                tor daemon  │
-                 │                          (DNSPort/TransPort)│
-                 └─────────────────────────────────────┬─────┘
-                                                          │
-                                                     Tor network
+```mermaid
+flowchart LR
+    App["every app\non this host"] -->|all outbound traffic| NFT
+
+    subgraph NFT["nftables — inet anonveil table"]
+        direction TB
+        DNS["port 53 (DNS)"] -->|redirect| RD[" "]
+        TCP["TCP"] -->|redirect| RD
+        Other["everything else"] -->|DROP| X["✕"]
+    end
+
+    RD --> Tor["tor daemon\nDNSPort / TransPort"]
+    Tor --> Net(("Tor network"))
+
+    style X fill:#ff5a5a,color:#000,stroke:#ff5a5a
+    style Net fill:#00ff9c,color:#000,stroke:#00ff9c
+    style Tor fill:#0a0a0c,color:#00ff9c,stroke:#00ff9c
 ```
 
 Three crates, split strictly by privilege:

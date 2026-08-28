@@ -70,6 +70,26 @@ changing what gets exempted from the kill switch:
 4. Update `threat-model.md` if the change affects what AnonVeil does
    or doesn't protect against.
 
+## Regenerating the docs/README screenshots
+
+`docs/assets/{hero.gif,dashboard.png,help.png}` are real recordings of
+the actual binary (via [VHS](https://github.com/charmbracelet/vhs)), not
+mockups — see `docs/vhs/*.tape` for the scripts. Regenerate them when a
+CLI/TUI change would make them stale (before a release, or after any
+visible output change):
+
+```sh
+docker run --rm --privileged --cap-add=NET_ADMIN \
+  -v "$PWD:/workspace" -w /workspace \
+  rust:1-bookworm ./scripts/generate-screenshots.sh
+```
+
+Needs root, a real network, and a headless-Chromium-based recorder, so
+it's not run in CI — see the script's own comments for why, and for the
+handful of environment-only accommodations it makes for running inside a
+plain container (no systemd, Docker's own `/etc/resolv.conf` bind-mount)
+that a real target host never needs.
+
 ## Commit/PR expectations
 
 - Keep the "why", not just the "what", in commit messages and PR

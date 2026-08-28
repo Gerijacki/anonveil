@@ -104,3 +104,7 @@ before tagging a release.
 
 If any step fails, that's a release blocker — file an issue with which
 step failed before tagging.
+
+If any CLI/TUI output changed visibly during this cycle, also regenerate
+`docs/assets/{hero.gif,dashboard.png,help.png}` — see CONTRIBUTING.md's
+"Regenerating the docs/README screenshots".

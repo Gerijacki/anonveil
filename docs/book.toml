@@ -5,8 +5,15 @@ authors = ["AnonVeil contributors"]
 language = "en"
 src = "src"
 
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
 [output.html]
 git-repository-url = "https://github.com/Gerijacki/anonveil"
 edit-url-template = "https://github.com/Gerijacki/anonveil/edit/main/docs/{path}"
 default-theme = "ayu"
 preferred-dark-theme = "ayu"
+# Populated by `mdbook-mermaid install docs` (run in
+# .github/workflows/docs.yml before `mdbook build`) — not committed, so
+# these two files aren't tracked in git.
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
