@@ -18,6 +18,7 @@ on:
     # Weekly, so a newly-published advisory against a dependency we
     # already use is caught even with no code changes.
     - cron: "17 6 * * 1"
+  workflow_dispatch:
 
 jobs:
   cargo-audit:
