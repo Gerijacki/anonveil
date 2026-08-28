@@ -74,5 +74,6 @@ pub fn capture_pre_activation_state() -> PrivResult<StateSnapshot> {
         systemd_resolved_was_active,
         anonveil_table_pre_existed,
         panic_active: false,
+        dns_snapshot_captured: true,
     })
 }

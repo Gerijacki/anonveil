@@ -57,6 +57,22 @@ pub struct StateSnapshot {
     /// `inet anonveil_panic` table on top of the state above. Cleared
     /// only by an explicit `anonveil stop --force`.
     pub panic_active: bool,
+    /// True only once [`resolv_conf_snapshot`]/[`resolv_conf_symlink_target`]
+    /// were actually populated by a real pre-activation capture (i.e. a
+    /// genuine `start` ran). Both those fields are `None`/`None` in two
+    /// very different situations — "captured, and `/etc/resolv.conf`
+    /// genuinely didn't exist" vs. "never captured at all" (no `start`
+    /// ever ran, or the state file was missing/reset) — and confusing the
+    /// two is a real host-DNS-destroying bug: `stop` must never delete a
+    /// live `/etc/resolv.conf` on the strength of a capture that never
+    /// happened. `#[serde(default)]` makes this `false` for any state
+    /// file written before this field existed, which is the conservative
+    /// (skip restoring) side of that mistake.
+    ///
+    /// [`resolv_conf_snapshot`]: StateSnapshot::resolv_conf_snapshot
+    /// [`resolv_conf_symlink_target`]: StateSnapshot::resolv_conf_symlink_target
+    #[serde(default)]
+    pub dns_snapshot_captured: bool,
 }
 
 impl StateSnapshot {
@@ -86,6 +102,7 @@ mod tests {
             systemd_resolved_was_active: true,
             anonveil_table_pre_existed: false,
             panic_active: false,
+            dns_snapshot_captured: true,
         };
         let json = snapshot.to_json_pretty().unwrap();
         let parsed = StateSnapshot::from_json(&json).unwrap();
@@ -98,5 +115,27 @@ mod tests {
         assert!(!snapshot.active);
         assert!(!snapshot.panic_active);
         assert!(snapshot.activated_at.is_none());
+        assert!(!snapshot.dns_snapshot_captured);
+    }
+
+    /// A state file written before `dns_snapshot_captured` existed (i.e.
+    /// missing the key entirely) must deserialize with it `false`, not
+    /// fail to parse and not silently default to `true` — `stop` reading
+    /// an old-format file must land on the safe "don't touch resolv.conf"
+    /// side, never the "I know what to restore" side.
+    #[test]
+    fn old_state_file_without_the_field_defaults_to_not_captured() {
+        let old_format_json = r#"{
+            "active": true,
+            "activated_at": "2026-08-28T12:00:00Z",
+            "pre_existing_ruleset_backup_path": null,
+            "resolv_conf_snapshot": null,
+            "resolv_conf_symlink_target": null,
+            "systemd_resolved_was_active": false,
+            "anonveil_table_pre_existed": false,
+            "panic_active": false
+        }"#;
+        let parsed = StateSnapshot::from_json(old_format_json).unwrap();
+        assert!(!parsed.dns_snapshot_captured);
     }
 }

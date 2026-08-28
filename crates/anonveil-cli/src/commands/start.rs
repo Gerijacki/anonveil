@@ -43,6 +43,15 @@ pub async fn run(config: &AnonveilConfig) -> Result<()> {
     let fw_config = config.to_firewall_config(tor_uid);
     let tor_config = config.to_tor_config();
 
+    if anonveil_priv::apply::panic_active() {
+        bail!(
+            "PANIC lockdown is still engaged from a previous `anonveil panic`. Starting now \
+             would load the normal kill switch underneath it, but the panic table would still \
+             block everything (including Tor's own bootstrap) and `start` would fail with a \
+             confusing bootstrap timeout. Run `anonveil stop --force` first to clear it."
+        );
+    }
+
     style::step("capturing pre-activation state...");
     let mut snapshot = anonveil_priv::snapshot::capture_pre_activation_state()?;
     if snapshot.anonveil_table_pre_existed {
@@ -70,6 +79,20 @@ pub async fn run(config: &AnonveilConfig) -> Result<()> {
             }
         }
 
+        // Load the kill switch *before* touching torrc or DNS. Its
+        // default-deny already exempts tor_uid/loopback/LAN, so loading it
+        // first only ever narrows what's reachable — it never depends on
+        // Tor already being reconfigured. Doing it first closes what would
+        // otherwise be a real leak window: with the old order (torrc +
+        // DNS first, kill switch last), a moment existed where
+        // /etc/resolv.conf already pointed at Tor's DNSPort but no
+        // redirect/default-deny was loaded yet, so any TCP connection
+        // opened by any process during that window went out directly,
+        // unproxied, with the host's real source IP.
+        style::step("loading kill switch...");
+        anonveil_priv::apply::apply_main_ruleset(&fw_config)?;
+        ruleset_loaded = true;
+
         style::step("writing torrc fragment and reloading tor...");
         anonveil_priv::systemd::ensure_torrc_include()?;
         anonveil_priv::systemd::write_torrc_fragment(&tor_config)?;
@@ -79,10 +102,6 @@ pub async fn run(config: &AnonveilConfig) -> Result<()> {
         style::step("pointing DNS at Tor...");
         anonveil_priv::resolvconf::point_to_localhost()?;
         dns_pointed = true;
-
-        style::step("loading kill switch...");
-        anonveil_priv::apply::apply_main_ruleset(&fw_config)?;
-        ruleset_loaded = true;
 
         style::step("waiting for tor to finish bootstrapping (this can take a moment)...");
         let mut client =

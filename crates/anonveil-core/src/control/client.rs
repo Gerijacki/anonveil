@@ -22,6 +22,33 @@ pub struct ProtocolInfo {
     pub cookie_file: Option<String>,
 }
 
+/// Split a control-spec `KEY=value KEY="quoted value"` token list on
+/// spaces, *except* spaces inside a `"..."` `QuotedString` (control-spec.txt
+/// §2.1) — a naive `str::split(' ')` truncates `COOKIEFILE="..."` at the
+/// first space once `DataDirectory` (and hence the cookie file's path)
+/// contains one, silently handing back a truncated, wrong path.
+fn split_respecting_quotes(s: &str) -> Vec<&str> {
+    let mut tokens = Vec::new();
+    let mut in_quotes = false;
+    let mut start = 0;
+    for (i, c) in s.char_indices() {
+        match c {
+            '"' => in_quotes = !in_quotes,
+            ' ' if !in_quotes => {
+                if i > start {
+                    tokens.push(&s[start..i]);
+                }
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    if start < s.len() {
+        tokens.push(&s[start..]);
+    }
+    tokens
+}
+
 /// A connected-but-not-yet-authenticated (or authenticated) control-port
 /// session. `T` is anything that looks like a duplex byte stream.
 pub struct ControlClient<T> {
@@ -85,7 +112,7 @@ impl<T: AsyncRead + AsyncWrite + Unpin> ControlClient<T> {
         let mut cookie_file = None;
         for line in &reply.lines {
             if let Some(rest) = line.strip_prefix("AUTH ") {
-                for token in rest.split(' ') {
+                for token in split_respecting_quotes(rest) {
                     if let Some(methods) = token.strip_prefix("METHODS=") {
                         auth_methods = methods.split(',').map(str::to_string).collect();
                     } else if let Some(path) = token.strip_prefix("COOKIEFILE=") {
@@ -215,6 +242,36 @@ mod tests {
             Some("/var/lib/tor/control_auth_cookie")
         );
         assert!(info.auth_methods.contains(&"COOKIE".to_string()));
+    }
+
+    #[tokio::test]
+    async fn protocol_info_extracts_cookie_file_containing_a_space() {
+        // A DataDirectory (and hence COOKIEFILE) with a space in it is
+        // unusual but legal — control-spec.txt quotes it for exactly this
+        // reason. A naive split(' ') would truncate the path here.
+        let mut client = client_with_scripted_reply(
+            "250-AUTH METHODS=COOKIE COOKIEFILE=\"/var/lib/my tor dir/control_auth_cookie\"\r\n\
+             250 OK\r\n",
+        );
+        let info = client.protocol_info().await.unwrap();
+        assert_eq!(
+            info.cookie_file.as_deref(),
+            Some("/var/lib/my tor dir/control_auth_cookie")
+        );
+    }
+
+    #[test]
+    fn quote_aware_split_keeps_spaces_inside_quotes_together() {
+        let tokens = split_respecting_quotes(
+            r#"METHODS=COOKIE,SAFECOOKIE COOKIEFILE="/var/lib/my tor dir/cookie""#,
+        );
+        assert_eq!(
+            tokens,
+            vec![
+                "METHODS=COOKIE,SAFECOOKIE",
+                r#"COOKIEFILE="/var/lib/my tor dir/cookie""#,
+            ]
+        );
     }
 
     #[tokio::test]
