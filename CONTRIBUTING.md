@@ -72,7 +72,7 @@ changing what gets exempted from the kill switch:
 
 ## Regenerating the docs/README screenshots
 
-`docs/assets/{hero.gif,dashboard.png,help.png}` are real recordings of
+`docs/assets/{hero.gif,dashboard.png,help.png,social-preview.png}` are real recordings of
 the actual binary (via [VHS](https://github.com/charmbracelet/vhs)), not
 mockups — see `docs/vhs/*.tape` for the scripts. Regenerate them when a
 CLI/TUI change would make them stale (before a release, or after any

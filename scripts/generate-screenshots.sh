@@ -114,9 +114,14 @@ echo "== recording hero.gif (full start -> check -> dashboard -> stop) =="
 vhs hero.tape
 anonveil stop --force >/dev/null 2>&1 || true
 
+echo "== recording social-preview.png (GitHub repo social-preview image; upload manually, see README) =="
+vhs social-preview.tape
+rm -f socialpreviewtmp.gif
+
 cd "$REPO_ROOT"
 mkdir -p docs/assets
 mv docs/vhs/help.png docs/vhs/dashboard.png docs/vhs/hero.gif docs/assets/
+mv docs/vhs/socialpreview.png docs/assets/social-preview.png
 
 echo "== done =="
 ls -la docs/assets/
