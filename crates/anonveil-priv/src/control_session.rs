@@ -14,11 +14,19 @@ use crate::error::{PrivError, PrivResult};
 
 pub type LiveControlClient = ControlClient<TcpStream>;
 
+/// How long to keep retrying the *initial* TCP connect before giving up.
+/// `reload-or-restart` returning success doesn't guarantee the control
+/// port's listener is already accepting connections — a HUP reload can
+/// briefly close and reopen its sockets — so a bare `connect` right after
+/// is a real, if usually brief, race, not just a theoretical one.
+const CONNECT_RETRY_BUDGET: Duration = Duration::from_secs(10);
+const CONNECT_RETRY_INTERVAL: Duration = Duration::from_millis(250);
+
 /// Connect to `127.0.0.1:<control_port>`, learn the cookie file path via
 /// `PROTOCOLINFO`, read it, and authenticate. Returns a ready-to-use,
 /// authenticated client.
 pub async fn connect_and_authenticate(control_port: u16) -> PrivResult<LiveControlClient> {
-    let stream = TcpStream::connect(("127.0.0.1", control_port)).await?;
+    let stream = connect_with_retry(control_port).await?;
     let mut client = ControlClient::new(stream);
 
     let info = client.protocol_info().await?;
@@ -32,6 +40,27 @@ pub async fn connect_and_authenticate(control_port: u16) -> PrivResult<LiveContr
     let cookie = std::fs::read(&cookie_path)?;
     client.authenticate(&cookie).await?;
     Ok(client)
+}
+
+/// Retry a plain TCP connect to the control port for up to
+/// [`CONNECT_RETRY_BUDGET`], treating connection-refused as transient.
+/// Any other error (e.g. a DNS/address error, which can't happen for a
+/// literal loopback address, but the type doesn't know that) is returned
+/// immediately rather than retried.
+async fn connect_with_retry(control_port: u16) -> PrivResult<TcpStream> {
+    let start = std::time::Instant::now();
+    loop {
+        match TcpStream::connect(("127.0.0.1", control_port)).await {
+            Ok(stream) => return Ok(stream),
+            Err(e) if e.kind() == std::io::ErrorKind::ConnectionRefused => {
+                if start.elapsed() >= CONNECT_RETRY_BUDGET {
+                    return Err(e.into());
+                }
+                sleep(CONNECT_RETRY_INTERVAL).await;
+            }
+            Err(e) => return Err(e.into()),
+        }
+    }
 }
 
 /// Extract the integer after `PROGRESS=` in a

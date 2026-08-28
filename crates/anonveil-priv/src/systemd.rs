@@ -56,11 +56,21 @@ pub fn remove_torrc_fragment() -> PrivResult<()> {
 }
 
 /// The two possible systemd unit names for the Tor daemon across the
-/// target distros: Arch's `tor` package ships a single `tor.service`;
-/// Debian/Ubuntu's supports multiple instances via `tor@<name>.service`
-/// with `tor@default.service` for `/etc/tor/torrc`, and typically an
-/// alias so plain `tor.service` also works. Both are tried, in order.
-const TOR_UNIT_CANDIDATES: [&str; 2] = ["tor.service", "tor@default.service"];
+/// target distros, tried **in this order** — order matters and is not
+/// arbitrary. Debian/Ubuntu's `tor` package supports multiple instances
+/// via `tor@<name>.service`, with `tor@default.service` owning
+/// `/etc/tor/torrc` and actually running the daemon; on at least some
+/// Debian/Ubuntu images `tor.service` is *not* an alias for it but a
+/// separate, mostly-inert "multi-instance-master" unit that
+/// `reload-or-restart` happily succeeds against without ever touching the
+/// real daemon or its config — confirmed the hard way by the
+/// `e2e-smoke-test` CI job, which reload-succeeded, then got
+/// `Connection refused` trying to reach a control port nothing was
+/// actually listening on. Trying the instance-specific name first is safe
+/// on Arch too: Arch's `tor` package has no multi-instance support, so
+/// `tor@default.service` simply doesn't exist there and this falls
+/// through to `tor.service`, which is correct on Arch.
+const TOR_UNIT_CANDIDATES: [&str; 2] = ["tor@default.service", "tor.service"];
 
 fn systemctl_reload_or_restart(unit: &str) -> PrivResult<()> {
     run("systemctl", &["reload-or-restart", unit])?;
