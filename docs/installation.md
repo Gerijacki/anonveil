@@ -11,6 +11,32 @@ cd anonveil
 makepkg -si
 ```
 
+### On Omarchy
+
+[Omarchy](https://omarchy.org) is Arch underneath (pacman, AUR, systemd),
+so the install above applies as-is. Two Omarchy-specific defaults worth
+knowing:
+
+- **NetworkManager** is Omarchy's network manager. This matters mainly
+  for `[rotation.mac]` (see [Usage](usage.md)) — the interface bounce a
+  MAC rotation requires can make NetworkManager notice a "new" link and
+  momentarily reassert control over `/etc/resolv.conf`; `anonveil rotate
+  --mac` already defends against this (see
+  [the threat model](../threat-model.md)), but it's the concrete reason
+  that caveat exists, not a hypothetical. The same applies to Omarchy's
+  own `omarchy dns`/`omarchy network` commands — avoid running them while
+  AnonVeil is active, same as you would with `nmcli`/`nmtui` directly.
+- **ufw** ships with Omarchy (state — enabled or not — has varied across
+  Omarchy versions; check with `systemctl status ufw`). This has been
+  verified to coexist cleanly with AnonVeil: on Arch, `ufw` manages its
+  rules through `ip filter`/`ip6 filter` tables via the `iptables-nft`
+  compatibility layer, completely separate from AnonVeil's own isolated
+  `inet anonveil` table — loading AnonVeil's ruleset alongside an active
+  `ufw` and then tearing it back down again leaves `ufw`'s tables and
+  status untouched, confirmed directly against real `nft`/`ufw`, not
+  assumed. `anonveil doctor` flags when `ufw`/`firewalld` is active as an
+  informational note, not a failure.
+
 ## Debian / Ubuntu (.deb)
 
 ```sh

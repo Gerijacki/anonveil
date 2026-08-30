@@ -121,6 +121,23 @@ pub fn run(config_override: Option<&PathBuf>) -> Result<()> {
         Err(e) => report.fail(&format!("config.toml failed to parse: {e:#}")),
     }
 
+    style::step("checking for other firewall managers...");
+    let other_firewalls: Vec<&str> = ["ufw", "firewalld"]
+        .into_iter()
+        .filter(|unit| anonveil_priv::exec::run_ok("systemctl", &["is-active", "--quiet", unit]))
+        .collect();
+    if other_firewalls.is_empty() {
+        report.pass("no other firewall manager (ufw/firewalld) is active");
+    } else {
+        style::dim(&format!(
+            "  {} active — AnonVeil's kill switch lives in its own isolated `inet anonveil` \
+             nftables table by design and doesn't touch anyone else's rules, so this is \
+             expected to coexist fine (e.g. on Omarchy, which ships ufw). Still worth a look \
+             with `sudo nft list ruleset` after `start` if something seems off.",
+            other_firewalls.join(", ")
+        ));
+    }
+
     style::step("checking persisted state against reality...");
     match anonveil_priv::snapshot::load_state() {
         Ok(state) if state.active => {

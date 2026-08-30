@@ -102,6 +102,17 @@ before tagging a release.
     it, `sudo anonveil start` succeeds, and `anonveil check` confirms
     Tor reachability same as step 5.
 
+23. **Omarchy specifically** (if you have a real Omarchy machine — this
+    is the one combination that can't be reproduced in a container, since
+    it needs the actual desktop session): with `ufw` and NetworkManager
+    both running as they do by default, repeat steps 2–5 and 13, then
+    enable `[rotation.mac]` and run `anonveil rotate --mac` a couple of
+    times — confirm `anonveil status` never shows a STATE MISMATCH
+    afterward and `/etc/resolv.conf` stays `nameserver 127.0.0.1`
+    throughout. `sudo nft list ruleset` should show `inet anonveil`
+    alongside `ufw`'s `ip filter`/`ip6 filter` tables, undisturbed by
+    each other in both directions.
+
 If any step fails, that's a release blocker — file an issue with which
 step failed before tagging.
 

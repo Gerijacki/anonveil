@@ -12,7 +12,13 @@
 //!   inserting rules into the host's existing chains) is what makes
 //!   activation and teardown atomic and safe on a box that may already
 //!   have its own nftables rules: `start` only ever adds this table,
-//!   `stop` only ever deletes it.
+//!   `stop` only ever deletes it. Verified directly (not assumed)
+//!   against `ufw` on Arch specifically because Omarchy ships it by
+//!   default: `ufw` manages `ip filter`/`ip6 filter` tables via the
+//!   `iptables-nft` compatibility layer, entirely separate from this
+//!   `inet anonveil` table — loading this ruleset alongside an active
+//!   `ufw` and tearing it back down again leaves `ufw`'s own tables and
+//!   status completely untouched.
 //! * **`output` hook only, no `prerouting`/`forward`.** v0.1 protects
 //!   *this host's own* traffic — it is not a gateway/router for other
 //!   devices (that is a tracked ROADMAP item). Locally generated packets
