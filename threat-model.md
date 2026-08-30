@@ -58,6 +58,54 @@ identifying metadata, or being fingerprinted by unique behavior all
 work exactly as well over Tor as off it. Anonymizing the network layer
 doesn't anonymize you.
 
+## Scheduled rotation (`[rotation]` / `anonveil rotate`)
+
+`anonveil rotate` and the optional `[rotation]`-driven `--watch` daemon
+give you a new Tor circuit (IP rotation) and/or a freshly randomized MAC
+address on a schedule, on top of the one-shot `newnym`/`mac randomize`
+that already existed. Read this before enabling it — **more rotation is
+not automatically more private**:
+
+- **`NEWNYM` only affects circuits built *after* the signal.** A
+  connection that's already open keeps using its existing circuit until
+  it closes on its own; rotating doesn't retroactively change the exit
+  IP an in-progress download or a long-lived connection is using. It's
+  for *new* connections going forward, not an instant global IP change.
+- **Rotating aggressively is not a free anonymity win.** Every `NEWNYM`
+  builds a fresh circuit through the Tor network, which has a real cost
+  to relay operators for arguably no benefit against a capable
+  adversary — Tor's own guidance is not to signal it more than you
+  actually need to. `anonveil rotate --watch` adds ~15% random jitter to
+  the configured interval specifically so the rotation cadence itself
+  isn't a fixed, machine-clockable pattern, but jitter is a mitigation
+  for that one specific issue, not a reason to set a very short interval.
+- **MAC rotation causes a real, brief connectivity interruption every
+  time.** Changing a live interface's hardware address requires bringing
+  the link down and back up at the driver level — there is no way to do
+  this without interrupting whatever's using that interface for a
+  moment. `anonveil rotate --mac` re-asserts the DNS override and
+  re-checks the kill switch immediately afterward (see next point), but
+  the interruption itself can't be eliminated, only made brief.
+- **The interface bounce can make NetworkManager/systemd-networkd
+  reassert control over `/etc/resolv.conf` or routing.** On a desktop
+  where one of those actively manages the rotated interface, it may
+  notice the "new" link state from a MAC change and rewrite
+  `/etc/resolv.conf` itself, momentarily undoing AnonVeil's DNS
+  redirect. `anonveil rotate --mac` defensively reapplies the override
+  and checks the kill switch right after every rotation and warns
+  loudly if either looks wrong — but this closes the window, it doesn't
+  make the window not exist in the first place. `anonveil status`/the
+  TUI's state-mismatch warning (see below) is the backstop if it ever
+  does happen.
+- **MAC rotation can break a captive-portal Wi-Fi session** (the network
+  will see what looks like a new device and require re-authentication),
+  and on networks that alert on MAC changes, can look anomalous by
+  design — that may or may not be the tradeoff you want depending on
+  what you're protecting against.
+
+Both `[rotation.ip]` and `[rotation.mac]` are off by default, and each is
+independent — enabling one doesn't enable the other.
+
 ## Deliberate v0.1 simplifications
 
 These are documented tradeoffs, not oversights:

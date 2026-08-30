@@ -93,6 +93,38 @@ pub struct MacConfig {
     pub randomize_on_start: bool,
 }
 
+/// One rotation schedule (`[rotation.ip]` or `[rotation.mac]`). Off by
+/// default — see `threat-model.md` for why more rotation isn't
+/// automatically more private, and for MAC rotation specifically, the
+/// real connectivity interruption it causes.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct RotationScheduleConfig {
+    pub enabled: bool,
+    pub interval_minutes: u32,
+}
+
+/// `[rotation]` — periodic, automatic identity rotation while AnonVeil is
+/// active, driven by `anonveil rotate --watch` (see
+/// `packaging/systemd/anonveil-rotate.service`, itself opt-in). Distinct
+/// from `[mac].randomize_on_start`, which only ever fires once, at
+/// `start`.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(default)]
+pub struct RotationConfig {
+    pub ip: RotationScheduleConfig,
+    pub mac: RotationScheduleConfig,
+}
+
+impl Default for RotationScheduleConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            interval_minutes: 10,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum TuiTheme {
@@ -128,6 +160,7 @@ impl Default for LoggingConfig {
 pub struct AnonveilConfig {
     pub network: NetworkConfig,
     pub mac: MacConfig,
+    pub rotation: RotationConfig,
     pub tui: TuiConfig,
     pub logging: LoggingConfig,
 }
@@ -223,6 +256,32 @@ excluded_tcp_ports = [22, 443]
         assert_eq!(config.network.dns_port, 5454);
         assert_eq!(config.network.trans_port, 9040); // untouched default
         assert_eq!(config.network.excluded_tcp_ports, vec![22, 443]);
+    }
+
+    #[test]
+    fn rotation_off_by_default() {
+        let config = AnonveilConfig::default();
+        assert!(!config.rotation.ip.enabled);
+        assert!(!config.rotation.mac.enabled);
+        assert_eq!(config.rotation.ip.interval_minutes, 10);
+    }
+
+    #[test]
+    fn parses_rotation_section() {
+        let text = r#"
+[rotation.ip]
+enabled = true
+interval_minutes = 5
+
+[rotation.mac]
+enabled = true
+interval_minutes = 45
+"#;
+        let config = AnonveilConfig::from_str(text).unwrap();
+        assert!(config.rotation.ip.enabled);
+        assert_eq!(config.rotation.ip.interval_minutes, 5);
+        assert!(config.rotation.mac.enabled);
+        assert_eq!(config.rotation.mac.interval_minutes, 45);
     }
 
     #[test]

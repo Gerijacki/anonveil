@@ -78,9 +78,34 @@ safe to restore connectivity.
 
 ## `another anonveil operation is already in progress`
 
-Two `start`/`stop`/`panic` invocations overlapped. Wait for the first to
-finish and retry — this is the lock (`anonveil-priv::lock`) doing its
-job, not a bug.
+Two `start`/`stop`/`panic`/`rotate` invocations overlapped. Wait for the
+first to finish and retry — this is the lock (`anonveil-priv::lock`)
+doing its job, not a bug.
+
+## `nothing to rotate` from `anonveil rotate`
+
+Neither `[rotation.ip]` nor `[rotation.mac]` is enabled in
+`config.toml`, and you didn't pass `--ip`/`--mac` to force one. See
+[Configuration](configuration.md#rotation) and
+[Usage](usage.md#scheduled-ipmac-rotation).
+
+## `the kill switch is NOT loaded after this MAC rotation`
+
+The interface bounce a MAC rotation requires let something else (most
+likely NetworkManager/systemd-networkd) reassert control and undo
+AnonVeil's protection in that instant — see
+[the threat model](../threat-model.md)'s rotation section for why this
+can happen at all. Run `sudo anonveil start` to reapply it; if it keeps
+happening on every rotation, that network interface's MAC probably
+shouldn't be rotated while AnonVeil is active on this host.
+
+## `scheduled IP/MAC rotation failed` from `anonveil-rotate.service`
+
+`anonveil rotate --watch` logs the failure and keeps running rather than
+exiting — check `journalctl -u anonveil-rotate.service` for the specific
+error (often the same underlying causes as `newnym`/`mac randomize`
+failing standalone: Tor's control port unreachable, or the interface
+named in the failure no longer exists).
 
 ## Still stuck?
 

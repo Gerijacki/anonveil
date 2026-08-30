@@ -8,6 +8,18 @@ project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Scheduled IP/MAC rotation** (`anonveil rotate [--ip] [--mac]
+  [--watch]`, `[rotation]` in config.toml, optional
+  `anonveil-rotate.service`) — periodic, jittered identity rotation on
+  top of the existing one-shot `newnym`/`mac randomize`. MAC rotation
+  defensively re-asserts the DNS override and re-checks the kill switch
+  immediately after every rotation (the interface bounce a MAC change
+  requires can let NetworkManager/systemd-networkd reassert control over
+  `/etc/resolv.conf`). `status`/the TUI show `last IP rotation`/`last MAC
+  rotation`. `anonveil doctor` warns on unreasonably short intervals.
+  See `threat-model.md` for the honest tradeoffs — more rotation is not
+  automatically more private, and MAC rotation causes a brief real
+  connectivity interruption every time.
 - **The TUI dashboard is now a control panel, not just a status light**:
   `[s]` start/stop, `[p]` panic, `[n]` newnym, in addition to `[r]`
   refresh and `[q]` quit — privileged actions leave the dashboard for
@@ -88,6 +100,10 @@ project follows [Semantic Versioning](https://semver.org/).
   paths containing a space** (a naive space-split broke the quoted
   value apart), which would make authentication fail against an
   otherwise-valid, unusually-pathed `DataDirectory`.
+- **`anonveil audit-ruleset` hard-failed if `tor`/`debian-tor` wasn't
+  installed yet**, despite advertising itself as a no-root, pre-install
+  preview tool — it now falls back to a documented placeholder uid and
+  says so, rather than requiring `tor` to already be set up first.
 
 ### Added
 

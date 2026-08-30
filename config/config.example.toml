@@ -58,6 +58,23 @@ lines = []
 # start` runs. Off by default — enable deliberately, not as a surprise.
 randomize_on_start = false
 
+# Periodic, automatic identity rotation while AnonVeil is active — for
+# stronger privacy than the one-shot `newnym`/`mac randomize` alone.
+# Both off by default. Driven by `anonveil rotate --watch`, meant to be
+# run via the optional `anonveil-rotate.service` (also not enabled by
+# default: `sudo systemctl enable --now anonveil-rotate.service`).
+# Read threat-model.md's rotation section first — more rotation is not
+# automatically more private, and MAC rotation causes a brief
+# connectivity interruption every time (it has to bring the interface
+# down to change its address).
+[rotation.ip]
+enabled = false
+interval_minutes = 10
+
+[rotation.mac]
+enabled = false
+interval_minutes = 10
+
 [tui]
 # "matrix" (green-on-black) or "cyan".
 theme = "matrix"

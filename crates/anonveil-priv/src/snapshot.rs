@@ -87,5 +87,10 @@ pub fn capture_pre_activation_state() -> PrivResult<StateSnapshot> {
         anonveil_table_pre_existed,
         panic_active: false,
         dns_snapshot_captured: true,
+        // A fresh `start` begins a new session — rotation history from a
+        // previous session isn't meaningful once that session's already
+        // been torn down and restarted.
+        last_ip_rotation: None,
+        last_mac_rotation: None,
     })
 }

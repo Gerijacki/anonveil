@@ -50,6 +50,24 @@ enum Commands {
         #[command(subcommand)]
         action: MacAction,
     },
+    /// Rotate identity for stronger privacy: a new Tor circuit (new exit
+    /// IP) and/or a freshly randomized MAC address. With no flags,
+    /// rotates whatever `[rotation]` in config.toml has enabled; --watch
+    /// runs forever with jittered timers (meant to be managed by the
+    /// optional anonveil-rotate.service). Read threat-model.md's
+    /// rotation section first — more rotation isn't automatically more
+    /// private, and MAC rotation causes a brief connectivity blip.
+    Rotate {
+        /// Force an IP (Tor circuit) rotation regardless of config.
+        #[arg(long)]
+        ip: bool,
+        /// Force a MAC address rotation regardless of config.
+        #[arg(long)]
+        mac: bool,
+        /// Run forever, rotating on config.toml's configured intervals.
+        #[arg(long)]
+        watch: bool,
+    },
     /// Launch the live-status dashboard (also the default with no
     /// subcommand).
     Dashboard,
@@ -133,6 +151,13 @@ async fn main() -> Result<()> {
             MacAction::Randomize { interface } => commands::mac::randomize(interface),
             MacAction::Restore { interface } => commands::mac::restore(interface),
         },
+        Some(Commands::Rotate { ip, mac, watch }) => {
+            if watch {
+                commands::rotate::watch(&config).await
+            } else {
+                commands::rotate::run(&config, ip, mac).await
+            }
+        }
         Some(Commands::AuditRuleset) => commands::audit_ruleset::run(&config),
         Some(Commands::Doctor) | Some(Commands::Completions { .. }) | Some(Commands::Man) => {
             unreachable!("handled above before config/logging were set up")

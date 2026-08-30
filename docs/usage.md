@@ -13,6 +13,7 @@
 | `anonveil check` | no | Confirm traffic is actually exiting through Tor right now. |
 | `anonveil mac randomize [--interface <name>]` | yes | Randomize a network interface's MAC address. |
 | `anonveil mac restore [--interface <name>]` | yes | Restore the original MAC address. |
+| `anonveil rotate [--ip] [--mac] [--watch]` | for `--mac` | Rotate identity: new Tor circuit and/or MAC address, once or (`--watch`) forever on a schedule. |
 | `anonveil doctor` | no | Check every precondition `start` depends on at once. |
 | `anonveil audit-ruleset` | no | Print the exact nftables ruleset `start` would load, without touching the system. |
 | `anonveil completions <shell>` | no | Print a shell completion script (installed automatically by both packages). |
@@ -107,6 +108,37 @@ strict_exit_nodes = false     # true = hard requirement, may fail to connect
 
 Read the note in [Configuration](configuration.md) before setting this —
 constraining exit nodes shrinks your anonymity set.
+
+## Scheduled IP/MAC rotation
+
+For stronger privacy than one-off `newnym`/`mac randomize`, enable
+periodic rotation in `/etc/anonveil/config.toml`:
+
+```toml
+[rotation.ip]
+enabled = true
+interval_minutes = 10
+
+[rotation.mac]
+enabled = true
+interval_minutes = 30
+```
+
+Then either run it manually whenever you want (`anonveil rotate`, or
+force one side with `--ip`/`--mac` regardless of what's enabled), or let
+the optional daemon handle it on schedule:
+
+```sh
+sudo systemctl enable --now anonveil-rotate.service
+```
+
+Not enabled by default — same opt-in pattern as `anonveil.service`.
+**Read [the threat model](../threat-model.md)'s rotation section
+first**: more rotation isn't automatically more private, and MAC
+rotation causes a real, brief connectivity interruption every time (it
+has to bring the interface down to change its address). `anonveil
+status`/the dashboard show `last IP rotation`/`last MAC rotation` once
+either has happened.
 
 ## Auditing the exact ruleset before you trust it
 

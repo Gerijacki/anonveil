@@ -92,6 +92,18 @@ fn draw_status(frame: &mut Frame, area: Rect, app: &App) {
                 ),
             ]));
         }
+        if let Some(when) = &app.state.last_ip_rotation {
+            lines.push(Line::from(Span::styled(
+                format!("  last IP rotation: {when}"),
+                theme::muted(),
+            )));
+        }
+        if let Some(when) = &app.state.last_mac_rotation {
+            lines.push(Line::from(Span::styled(
+                format!("  last MAC rotation: {when}"),
+                theme::muted(),
+            )));
+        }
         if let Some(err) = &app.control_error {
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(

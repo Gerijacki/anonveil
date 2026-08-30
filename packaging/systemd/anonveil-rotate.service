@@ -1,0 +1,21 @@
+[Unit]
+Description=AnonVeil — scheduled IP/MAC rotation
+Documentation=https://github.com/Gerijacki/anonveil
+# Installed but NOT enabled by default — rotation itself is opt-in via
+# [rotation] in config.toml (both ip/mac start disabled), and this unit
+# is a second, separate opt-in on top of that: enabling only the unit
+# with nothing configured in [rotation] is a harmless no-op (`anonveil
+# rotate --watch` exits immediately in that case), but the unit stays
+# off by default anyway for the same "no silent behavior" reasons as
+# anonveil.service. Read threat-model.md's rotation section first.
+After=anonveil.service
+Wants=anonveil.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/anonveil rotate --watch
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

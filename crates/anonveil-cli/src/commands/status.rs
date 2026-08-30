@@ -21,6 +21,12 @@ pub async fn run(config: &AnonveilConfig) -> Result<()> {
     if let Some(since) = &state.activated_at {
         style::dim(&format!("  since: {since}"));
     }
+    if let Some(when) = &state.last_ip_rotation {
+        style::dim(&format!("  last IP rotation: {when}"));
+    }
+    if let Some(when) = &state.last_mac_rotation {
+        style::dim(&format!("  last MAC rotation: {when}"));
+    }
 
     if !anonveil_priv::snapshot::kill_switch_actually_loaded() {
         style::error(

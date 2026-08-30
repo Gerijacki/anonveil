@@ -73,6 +73,17 @@ pub struct StateSnapshot {
     /// [`resolv_conf_symlink_target`]: StateSnapshot::resolv_conf_symlink_target
     #[serde(default)]
     pub dns_snapshot_captured: bool,
+    /// RFC 3339 timestamp of the most recent successful `anonveil rotate
+    /// --ip` (manual or via the `--watch` daemon). `None` if it's never
+    /// happened. Informational only — surfaced by `status`/the TUI.
+    #[serde(default)]
+    pub last_ip_rotation: Option<String>,
+    /// Same as [`last_ip_rotation`], for the most recent successful MAC
+    /// rotation.
+    ///
+    /// [`last_ip_rotation`]: StateSnapshot::last_ip_rotation
+    #[serde(default)]
+    pub last_mac_rotation: Option<String>,
 }
 
 impl StateSnapshot {
@@ -103,6 +114,8 @@ mod tests {
             anonveil_table_pre_existed: false,
             panic_active: false,
             dns_snapshot_captured: true,
+            last_ip_rotation: Some("2026-08-28T12:05:00Z".to_string()),
+            last_mac_rotation: None,
         };
         let json = snapshot.to_json_pretty().unwrap();
         let parsed = StateSnapshot::from_json(&json).unwrap();
@@ -116,6 +129,8 @@ mod tests {
         assert!(!snapshot.panic_active);
         assert!(snapshot.activated_at.is_none());
         assert!(!snapshot.dns_snapshot_captured);
+        assert!(snapshot.last_ip_rotation.is_none());
+        assert!(snapshot.last_mac_rotation.is_none());
     }
 
     /// A state file written before `dns_snapshot_captured` existed (i.e.
@@ -137,5 +152,28 @@ mod tests {
         }"#;
         let parsed = StateSnapshot::from_json(old_format_json).unwrap();
         assert!(!parsed.dns_snapshot_captured);
+    }
+
+    /// Same backward-compatibility contract for the rotation-tracking
+    /// fields added after `dns_snapshot_captured`: a state file that
+    /// predates them must still parse, defaulting both to `None` (nothing
+    /// has ever rotated, which is the truthful state for a file that
+    /// predates the feature entirely).
+    #[test]
+    fn old_state_file_without_rotation_fields_defaults_to_none() {
+        let old_format_json = r#"{
+            "active": true,
+            "activated_at": "2026-08-28T12:00:00Z",
+            "pre_existing_ruleset_backup_path": null,
+            "resolv_conf_snapshot": null,
+            "resolv_conf_symlink_target": null,
+            "systemd_resolved_was_active": false,
+            "anonveil_table_pre_existed": false,
+            "panic_active": false,
+            "dns_snapshot_captured": true
+        }"#;
+        let parsed = StateSnapshot::from_json(old_format_json).unwrap();
+        assert!(parsed.last_ip_rotation.is_none());
+        assert!(parsed.last_mac_rotation.is_none());
     }
 }

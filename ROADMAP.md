@@ -24,6 +24,13 @@ is a scope decision explained in `threat-model.md`, not an oversight.
   secret. Wiring this up once that's available.
 - **Signed release artifacts** — SHA256SUMS ships today; adding a
   minisign/cosign signature over it once a signing key exists.
+- **Round-robin exit-country rotation** — `[rotation.ip]` today issues
+  `NEWNYM` against whatever static `exit_nodes` config already says; a
+  future version could cycle through multiple configured countries on
+  each rotation instead of just one fixed set. Needs a torrc rewrite +
+  `tor` reload per rotation (heavier and riskier than a plain `NEWNYM`
+  signal), so it's deliberately scoped separately from the rotation
+  system that shipped.
 
 ## Later
 

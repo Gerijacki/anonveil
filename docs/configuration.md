@@ -51,6 +51,35 @@ what Tor already provides once connected. See the [threat model](../threat-model
 |---|---|---|
 | `randomize_on_start` | `false` | Randomize the default-route interface's MAC address every time `anonveil start` runs. |
 
+## `[rotation]`
+
+Periodic, automatic identity rotation while AnonVeil is active — for
+stronger privacy than the one-shot `newnym`/`mac randomize` alone. Both
+sections off by default, and independent of each other.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `ip.enabled` | `false` | Whether `anonveil rotate --watch` requests a new Tor circuit on an interval. |
+| `ip.interval_minutes` | `10` | How often, roughly (`--watch` adds ~15% random jitter — see the threat model). |
+| `mac.enabled` | `false` | Whether `anonveil rotate --watch` randomizes the MAC address on an interval. |
+| `mac.interval_minutes` | `10` | How often, roughly. |
+
+```toml
+[rotation.ip]
+enabled = true
+interval_minutes = 10
+
+[rotation.mac]
+enabled = true
+interval_minutes = 30
+```
+
+**Read [the threat model](../threat-model.md)'s rotation section before
+enabling this** — more rotation is not automatically more private, and
+MAC rotation causes a real, brief connectivity interruption every time.
+`anonveil doctor` warns if either interval is set unreasonably low. See
+[Usage](usage.md) for how to actually turn the daemon on.
+
 ## `[tui]`
 
 | Key | Default | Meaning |

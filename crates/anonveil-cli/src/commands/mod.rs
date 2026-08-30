@@ -9,6 +9,7 @@ pub mod man;
 pub mod newnym;
 pub mod panic;
 pub mod restart;
+pub mod rotate;
 pub mod start;
 pub mod status;
 pub mod stop;

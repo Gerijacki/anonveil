@@ -13,6 +13,10 @@ Read the threat model before relying on this for anything sensitive:
 Optional: to have AnonVeil resume protection automatically after a
 reboot (nftables rules don't survive one on their own), run:
   sudo systemctl enable anonveil.service
+
+Optional: to periodically rotate your Tor circuit/MAC address while
+active, enable [rotation] in config.toml, then:
+  sudo systemctl enable --now anonveil-rotate.service
 EOF
 }
 

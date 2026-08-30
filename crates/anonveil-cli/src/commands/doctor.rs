@@ -76,6 +76,20 @@ pub fn run(config_override: Option<&PathBuf>) -> Result<()> {
                 );
             }
 
+            if config.rotation.ip.enabled && config.rotation.ip.interval_minutes < 1 {
+                report.warn(
+                    "[rotation.ip].interval_minutes is below Tor's own ~10s NEWNYM rate limit \
+                     — most rotations this frequent would be wasted. See threat-model.md.",
+                );
+            }
+            if config.rotation.mac.enabled && config.rotation.mac.interval_minutes < 5 {
+                report.warn(
+                    "[rotation.mac].interval_minutes is very short — each MAC rotation bounces \
+                     the interface (brief connectivity interruption every time). See \
+                     threat-model.md before leaving it this frequent.",
+                );
+            }
+
             style::step("checking whether AnonVeil's ports are free...");
             let active = anonveil_priv::snapshot::load_state()
                 .map(|s| s.active)
